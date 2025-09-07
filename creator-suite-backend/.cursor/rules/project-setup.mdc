@@ -1,0 +1,33 @@
+---
+alwaysApply: true
+---
+# Project Structure and Environment
+
+This is a FastAPI backend application for the Creator Suite.
+
+## Project Structure
+- The main entry point is [main.py](mdc:main.py) in the root directory, which starts the FastAPI server
+- Core application code is in the [app](mdc:app) directory
+- API endpoints are defined in [app/api](mdc:app/api) directory
+- Database models are in [app/models](mdc:app/models)
+- Database configuration is in [app/db](mdc:app/db)
+- Core configuration settings are in [app/core/config.py](mdc:app/core/config.py)
+- Database migrations are managed with Alembic in the [migrations](mdc:migrations) directory
+
+## Environment Management
+This project uses uv by astral for Python environment management:
+
+- Virtual environment is located in [.venv](mdc:.venv) directory
+- Python version is specified in [.python-version](mdc:.python-version)
+- Dependencies are defined in [pyproject.toml](mdc:pyproject.toml)
+- Lock file is maintained in [uv.lock](mdc:uv.lock)
+
+### Common Commands
+- Install dependencies: `uv add <package_name>`
+- Add a new dependency: `uv add <package_name>`
+- Update lock file: `uv lock`
+- Activate environment: `source .venv/bin/activate`
+
+## Running the Application
+- Development mode: `fastapi dev main.py`
+- Production mode: `fastapi run main.py`

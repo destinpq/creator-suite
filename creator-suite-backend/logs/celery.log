@@ -1,0 +1,29 @@
+ 
+ -------------- celery@creat v5.5.3 (immunity)
+--- ***** ----- 
+-- ******* ---- Linux-6.11.0-1018-azure-x86_64-with-glibc2.39 2025-08-28 10:14:39
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         creator_suite:0x7ee7f31b4680
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 8 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . cancel_hailuo_02_generation
+  . cancel_imagen_4_ultra_generation
+  . cancel_veo_3_generation
+  . generate_hailuo_02_video
+  . generate_imagen_4_ultra_image
+  . generate_minimax_video
+  . generate_veo_3_video
+
+[2025-08-28 10:14:39,994: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2025-08-28 10:14:39,996: INFO/MainProcess] mingle: searching for neighbors
+[2025-08-28 10:14:41,001: INFO/MainProcess] mingle: all alone
+[2025-08-28 10:14:41,008: INFO/MainProcess] celery@creat ready.

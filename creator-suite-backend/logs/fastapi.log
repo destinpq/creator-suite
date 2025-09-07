@@ -1,0 +1,42 @@
+
+   FastAPI   Starting production server 🚀
+ 
+             Searching for package file structure from directories with         
+             __init__.py files                                                  
+/home/azureuser/creator-suite-backend/.venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
+* 'orm_mode' has been renamed to 'from_attributes'
+  warnings.warn(message, UserWarning)
+             Importing from /home/azureuser/creator-suite-backend
+ 
+    module   🐍 main.py
+ 
+      code   Importing the FastAPI app object from the module with the following
+             code:                                                              
+ 
+             from main import app
+ 
+       app   Using import string: main:app
+ 
+    server   Server started at http://0.0.0.0:8000
+    server   Documentation at http://0.0.0.0:8000/docs
+ 
+             Logs:
+ 
+      INFO   Started server process [931887]
+      INFO   Waiting for application startup.
+      INFO   Application startup complete.
+      INFO   Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+      INFO   127.0.0.1:32828 - "GET /api/v1/users/current-user?token=123        
+             HTTP/1.0" 200
+      INFO   127.0.0.1:32838 - "GET /api/v1/users/billing?token=123 HTTP/1.0"   
+             200
+      INFO   127.0.0.1:59024 - "GET                                             
+             /api/v1/admin/feedback/?token=123&page=1&page_size=50&include_stats
+             =false HTTP/1.0" 200
+      INFO   127.0.0.1:50960 - "GET /api/v1/users/current-user?token=123        
+             HTTP/1.0" 200
+      INFO   127.0.0.1:50976 - "GET /api/v1/users/billing?token=123 HTTP/1.0"   
+             200
+      INFO   127.0.0.1:50982 - "GET                                             
+             /api/v1/admin/feedback/?token=123&page=1&page_size=50&include_stats
+             =false HTTP/1.0" 200

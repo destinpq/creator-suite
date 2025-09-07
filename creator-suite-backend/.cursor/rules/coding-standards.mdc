@@ -1,0 +1,30 @@
+---
+alwaysApply: true
+---
+# Coding Standards
+
+## Python Standards
+- Use Python 3.12+ features as specified in pyproject.toml
+- Follow PEP 8 style guidelines
+- Use type hints for function parameters and return values
+- Use absolute imports (e.g., `from app.models import User`)
+- Use async/await for database operations and external API calls
+
+## FastAPI Endpoints
+- All API endpoints should be organized by resource in the [app/api/v1](mdc:app/api/v1) directory
+- Use dependency injection for authentication and database sessions
+- Use Pydantic models for request and response validation
+- Include appropriate status codes and response models
+- Use proper HTTP methods (GET, POST, PUT, DELETE) according to REST principles
+
+## Database Models
+- All models should inherit from SQLAlchemy's declarative base
+- Define relationships clearly with appropriate cascade behavior
+- Include proper indexes for frequently queried fields
+- Use Alembic for all database migrations
+
+## Pydantic Schemas
+- Create separate schemas for request and response models
+- Use appropriate validators for data validation
+- Include field descriptions for OpenAPI documentation
+- Create separate schemas for create and update operations

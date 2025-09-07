@@ -1,0 +1,86 @@
+---
+alwaysApply: true
+description: "Ant Design Pro project structure and development guidelines"
+---
+
+# Ant Design Pro Project Rules
+
+This project is an **Ant Design Pro** based application with specific conventions that must be followed.
+
+## Project Architecture
+
+### Core Technologies
+- **Ant Design Pro**: Complete UI framework with routing, access control, state management, and API handling
+- **dva**: State management solution - each page has its own model
+- **umi max**: Framework with built-in request utility for API calls
+- **pnpm**: Package manager for all dependency installations
+
+### Entry Point
+- **[app.tsx](mdc:app.tsx)**: Main entry point containing entire layout rendering logic
+
+## Page Structure Convention
+
+Every page MUST follow this exact structure:
+```
+/pages/[page-name]/
+├── components/          # Reusable components specific to this page
+├── index.tsx           # Main page component
+├── model.ts            # dva state management for this page
+└── service.ts          # All API request methods for this page
+```
+
+## State Management Rules
+- never use await in front of dispatch
+- dva manages loading of each effect automatically, just write `const loading = useSelector((state: RootState) => state.loading.effects['model_name/effect_name']);`
+
+### Page-Level State (dva)
+- Each page has its own `model.ts` file using dva
+- Keep state isolated to page-specific concerns
+- Follow dva conventions for effects, reducers, and subscriptions
+
+### Global State
+- Use `@@initialState` for globally accessible state:
+  ```typescript
+  const { initialState } = useModel('@@initialState');
+  const { currentUser } = initialState || {};
+  ```
+- `currentUser` contains logged-in user details and is globally accessible
+
+## API Integration Rules
+
+### Request Utility
+- **ALWAYS** use `request` from umi max for API calls
+- Never use fetch, axios, or other HTTP clients directly
+- The request utility has all configurations pre-configured
+
+### Service Layer
+- All API methods go in the page's `service.ts` file
+- Keep API logic separate from components and models
+- Use TypeScript interfaces for request/response types
+
+## Development Practices
+
+### Package Management
+- **ALWAYS** use `pnpm` for installing dependencies
+- Never use npm or yarn commands
+- Example: `pnpm add [package-name]`
+
+### Component Organization
+- Page-specific reusable components go in `/components/` folder within the page
+- Shared components across pages should be in a global components directory
+- Follow Ant Design component patterns and conventions
+
+### Code Organization
+- Keep concerns separated: UI components, business logic (models), and API calls (services)
+- Use TypeScript for all files
+- Follow the established folder structure consistently
+
+## Access Control & Routing
+- Leverage Ant Design Pro's built-in access control system
+- Use the framework's routing conventions
+- Check user permissions using the global `currentUser` state when needed
+
+## Key Files Reference
+- **[package.json](mdc:package.json)**: Project dependencies and scripts
+- **[tsconfig.json](mdc:tsconfig.json)**: TypeScript configuration
+- **[app.tsx](mdc:app.tsx)**: Application entry point and layout logic
