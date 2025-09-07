@@ -49,10 +49,32 @@ class Settings(BaseSettings):
     # Google Gemini API
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
     
+    # Additional optional settings (to prevent pydantic errors)
+    DEBUG: Optional[str] = os.getenv("DEBUG", "false")
+    LOG_LEVEL: Optional[str] = os.getenv("LOG_LEVEL", "INFO")
+    ENVIRONMENT: Optional[str] = os.getenv("ENVIRONMENT", "development")
+    ALLOWED_ORIGINS: Optional[str] = os.getenv("ALLOWED_ORIGINS")
+    FRONTEND_URL: Optional[str] = os.getenv("FRONTEND_URL")
+    API_URL: Optional[str] = os.getenv("API_URL")
+    
+    # Bot and API keys (optional)
+    RUNWAY_API_KEY: Optional[str] = os.getenv("RUNWAY_API_KEY")
+    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    DISCORD_BOT_TOKEN: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
+    TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")
+    WHATSAPP_TOKEN: Optional[str] = os.getenv("WHATSAPP_TOKEN")
+    WHATSAPP_PHONE_NUMBER_ID: Optional[str] = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+    WHATSAPP_VERIFY_TOKEN: Optional[str] = os.getenv("WHATSAPP_VERIFY_TOKEN")
+    INSTAGRAM_APP_ID: Optional[str] = os.getenv("INSTAGRAM_APP_ID")
+    INSTAGRAM_APP_SECRET: Optional[str] = os.getenv("INSTAGRAM_APP_SECRET")
+    RAZORPAY_KEY_ID: Optional[str] = os.getenv("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: Optional[str] = os.getenv("RAZORPAY_KEY_SECRET")
+    
     class Config:
         case_sensitive = True
         env_file = ".env"
         env_ignore = ["BACKEND_CORS_ORIGINS"]
+        extra = "ignore"  # Ignore unknown environment variables
 
 
 settings = Settings()
