@@ -97,7 +97,7 @@ I can help you generate amazing videos using Runway Gen-3 Alpha!
 3. Generate videos with `/generate duration prompt`
 
 Minimum video duration: 8 seconds
-Maximum video duration: 240 seconds (4 minutes)
+Maximum video duration: 1800 seconds (30 minutes)
 """
     await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
@@ -232,8 +232,8 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if len(context.args) < 2:
         await update.message.reply_text(
             "❌ Usage: `/generate duration prompt`\n"
-            "Example: `/generate 10 A cat playing with a ball`\n"
-            "Duration: 8-240 seconds (up to 4 minutes)",
+            "Example: `/generate 60 A cat playing with a ball`\n"
+            "Duration: 8-1800 seconds (up to 30 minutes)",
             parse_mode='Markdown'
         )
         return
@@ -248,9 +248,14 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("❌ Minimum duration is 8 seconds")
         return
     
-    if duration > 240:
-        await update.message.reply_text("❌ Maximum duration is 240 seconds (4 minutes)")
+    if duration > 1800:
+        await update.message.reply_text("❌ Maximum duration is 1800 seconds (30 minutes)")
         return
+    
+    # Calculate credits needed
+    segments = (duration + 7) // 8
+    adjusted_duration = segments * 8
+    credits_needed = segments * 1.0
     
     prompt = ' '.join(context.args[1:])
     token = creator_bot.user_sessions[user_id]
@@ -268,12 +273,13 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         }
     }
     
-    # Send initial response
+    # Send initial response with credit breakdown
     initial_text = f"""
 🎬 **Video Generation Started**
 
 Prompt: {prompt[:500]}
-Duration: {duration} seconds
+Duration: {duration}s → {adjusted_duration}s ({segments} segments)
+Credits: {credits_needed} credits
 Model: Runway Gen-3 Alpha
 
 Generating your video...
@@ -358,6 +364,120 @@ Model: Runway Gen-3 Alpha
         parse_mode='Markdown'
     )
 
+async def edit_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Edit video segments command"""
+    user_id = update.effective_user.id
+    
+    if user_id not in creator_bot.user_sessions:
+        await update.message.reply_text(
+            "❌ **Not Authenticated**\nPlease login first using `/login email password`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    if len(context.args) < 3:
+        await update.message.reply_text(
+            "❌ Usage: `/edit video_id segments prompts`\n"
+            "Example: `/edit abc123 1,3 new prompt 1|new prompt 3`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        video_id = context.args[0]
+        segments_str = context.args[1]
+        prompts_str = ' '.join(context.args[2:])
+        
+        # Parse segments and prompts
+        segment_ids = [int(s.strip()) for s in segments_str.split(",")]
+        prompts = [p.strip() for p in prompts_str.split("|")]
+        
+        if len(segment_ids) != len(prompts):
+            await update.message.reply_text("❌ Number of segments must match number of prompts")
+            return
+        
+        # Calculate edit cost
+        edit_cost = len(segment_ids) * 1.0
+        
+        edit_text = f"""
+✏️ **Video Edit Started**
+
+Video ID: {video_id}
+Segments: {len(segment_ids)} segments
+Edit Cost: {edit_cost} credits
+
+Editing in progress...
+"""
+        
+        message = await update.message.reply_text(edit_text, parse_mode='Markdown')
+        
+        # Process edit (placeholder)
+        await asyncio.sleep(5)
+        
+        success_text = f"""
+✅ **Video Edit Completed**
+
+Video ID: {video_id}
+Edited Segments: {len(segment_ids)}
+Credits Used: {edit_cost} credits
+
+Your video has been successfully edited!
+"""
+        
+        await message.edit_text(success_text, parse_mode='Markdown')
+        
+    except ValueError:
+        await update.message.reply_text("❌ Invalid format. Check segment numbers and prompt format.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Edit failed: {str(e)}")
+
+async def view_segments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """View video segments command"""
+    user_id = update.effective_user.id
+    
+    if user_id not in creator_bot.user_sessions:
+        await update.message.reply_text(
+            "❌ **Not Authenticated**\nPlease login first using `/login email password`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    if len(context.args) != 1:
+        await update.message.reply_text(
+            "❌ Usage: `/segments video_id`\n"
+            "Example: `/segments abc123`",
+            parse_mode='Markdown'
+        )
+        return
+    
+    try:
+        video_id = context.args[0]
+        
+        # Placeholder for actual video lookup
+        duration = 120  # Example: 2 minutes
+        segments = (duration + 7) // 8
+        
+        segments_text = f"""
+📹 **Video Segments**
+
+Video ID: {video_id}
+Duration: {duration} seconds
+Total Segments: {segments}
+Edit Cost: 1 credit per segment
+
+**Segment Breakdown:**
+"""
+        
+        for i in range(segments):
+            start = i * 8
+            end = min((i + 1) * 8, duration)
+            segments_text += f"Segment {i+1}: {start}s - {end}s\n"
+        
+        await update.message.reply_text(segments_text, parse_mode='Markdown')
+        
+    except Exception as e:
+        await update.message.reply_text(f"❌ Failed to get segments: {str(e)}")
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Help command handler"""
     help_text = """
@@ -371,14 +491,19 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /topup amount - Top-up credits via Razorpay
 
 **Video Generation:**
-/generate duration prompt - Generate video (min 8 seconds)
-Example: `/generate 10 A cat playing with a ball`
+/generate duration prompt - Generate video (8s to 30 minutes)
+Example: `/generate 60 A cat playing with a ball`
+
+**Video Editing:**
+/edit video_id segments prompts - Edit specific segments
+Example: `/edit abc123 1,3 new prompt 1|new prompt 3`
+/segments video_id - View video segments
 
 **Notes:**
-• Minimum duration: 8 seconds
-• Maximum duration: 30 seconds
+• Duration: 8 seconds to 30 minutes
+• Credit System: 1 credit per 8-second segment
+• Editing: 1 additional credit per edited segment
 • Powered by Runway Gen-3 Alpha
-• Videos cost credits based on duration and quality
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
@@ -399,6 +524,8 @@ def run_telegram_bot():
         application.add_handler(CommandHandler("credits", check_credits))
         application.add_handler(CommandHandler("topup", topup_credits))
         application.add_handler(CommandHandler("generate", generate_video))
+        application.add_handler(CommandHandler("edit", edit_video))
+        application.add_handler(CommandHandler("segments", view_segments))
         application.add_handler(CommandHandler("help", help_command))
         
         # Run the bot

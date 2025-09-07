@@ -166,7 +166,7 @@ I can help you generate amazing videos using Runway Gen-3 Alpha!
 3. Generate videos with GENERATE
 
 Minimum video duration: 8 seconds
-Maximum video duration: 240 seconds (4 minutes)"""
+Maximum video duration: 1800 seconds (30 minutes)"""
         
         buttons = [
             {"type": "reply", "reply": {"id": "btn_login", "title": "Login"}},
@@ -310,8 +310,8 @@ Click the link to complete payment."""
         self.user_states[phone_number] = "awaiting_duration"
         message = """🎬 *Generate Video*
 
-Please send the video duration in seconds (8-240):
-Example: 10"""
+Please send the video duration in seconds (8-1800):
+Example: 60"""
         await self.send_whatsapp_message(phone_number, message)
 
     async def handle_duration_input(self, phone_number: str, duration_str: str) -> None:
@@ -319,15 +319,15 @@ Example: 10"""
         try:
             duration = int(duration_str)
         except ValueError:
-            await self.send_whatsapp_message(phone_number, "❌ Invalid duration. Please enter a number between 8-240 seconds.")
+            await self.send_whatsapp_message(phone_number, "❌ Invalid duration. Please enter a number between 8-1800 seconds.")
             return
         
         if duration < 8:
             await self.send_whatsapp_message(phone_number, "❌ Minimum duration is 8 seconds")
             return
         
-        if duration > 240:
-            await self.send_whatsapp_message(phone_number, "❌ Maximum duration is 240 seconds (4 minutes)")
+        if duration > 1800:
+            await self.send_whatsapp_message(phone_number, "❌ Maximum duration is 1800 seconds (30 minutes)")
             return
         
         self.user_states[phone_number] = f"awaiting_prompt:{duration}"

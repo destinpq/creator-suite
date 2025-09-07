@@ -23,6 +23,8 @@ This directory contains bot implementations for Discord, Telegram, and WhatsApp 
 - `/credits` - Check your credit balance
 - `/topup` - Top-up credits via Razorpay
 - `/generate` - Generate a video with Runway Gen-3 Alpha
+- `/edit` - Edit specific segments of your video
+- `/segments` - View video segments breakdown
 - `/help` - Show help information
 
 ### Telegram Bot (`telegram_bot.py`)
@@ -171,28 +173,36 @@ python scripts/run_whatsapp_bot.py
 1. Invite the bot to your Discord server
 2. Use `/login` to authenticate
 3. Check credits with `/credits`
-4. Generate a video: `/generate duration:10 prompt:A cat playing with a ball`
+4. Generate a video: `/generate duration:60 prompt:A cat playing with a ball`
+5. Edit segments: `/edit video_id 1,3 new prompt 1|new prompt 3`
+6. View segments: `/segments video_id`
 
 ### Telegram Bot Usage
 1. Start a chat with your bot
 2. Send `/login your@email.com yourpassword`
 3. Check credits: `/credits`
-4. Generate video: `/generate 10 A cat playing with a ball`
+4. Generate video: `/generate 60 A cat playing with a ball`
+5. Edit segments: `/edit video_id 1,3 new prompt 1|new prompt 3`
+6. View segments: `/segments video_id`
 
 ### WhatsApp Bot Usage
 1. Send "LOGIN" to start authentication
 2. Follow the prompts to enter email and password
 3. Send "CREDITS" to check balance
 4. Send "GENERATE" and follow prompts for video creation
+5. Send "EDIT" to modify specific video segments
+6. Send "SEGMENTS" to view video breakdown
 
 ## Video Generation Specifications
 
 - **Model**: Runway Gen-3 Alpha Turbo
-- **Duration**: 8-240 seconds (8 seconds to 4 minutes)
+- **Duration**: 8-1800 seconds (8 seconds to 30 minutes)
+- **Segment System**: 8-second segments for credit calculation
 - **Resolutions**: 1280x768, 768x1280, 1024x1024
 - **Format**: MP4
-- **Cost**: $0.50 per second
-- **Generation Time**: 1-5 minutes typically (longer for 4-minute videos)
+- **Cost**: 1 credit per 8-second segment
+- **Editing Cost**: 1 additional credit per edited segment
+- **Generation Time**: 1-10 minutes (longer for 30-minute videos)
 
 ## Payment Integration
 

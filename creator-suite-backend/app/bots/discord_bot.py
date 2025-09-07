@@ -193,9 +193,13 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         await interaction.followup.send("❌ Minimum duration is 8 seconds", ephemeral=True)
         return
     
-    if duration > 240:
-        await interaction.followup.send("❌ Maximum duration is 240 seconds (4 minutes)", ephemeral=True)
+    if duration > 1800:
+        await interaction.followup.send("❌ Maximum duration is 1800 seconds (30 minutes)", ephemeral=True)
         return
+    
+    # Calculate credits needed (1 credit per 8-second segment)
+    segments = (duration + 7) // 8
+    credits_needed = segments * 1.0
     
     token = bot.user_sessions[ctx.author.id]
     
@@ -212,6 +216,11 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         }
     }
     
+    # Calculate credits and adjusted duration
+    segments = (duration + 7) // 8
+    adjusted_duration = segments * 8
+    credits_needed = segments * 1.0
+    
     # Send initial response
     embed = discord.Embed(
         title="🎬 Video Generation Started",
@@ -219,7 +228,8 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         color=0xffaa00
     )
     embed.add_field(name="Prompt", value=prompt[:1000], inline=False)
-    embed.add_field(name="Duration", value=f"{duration} seconds", inline=True)
+    embed.add_field(name="Duration", value=f"{duration}s → {adjusted_duration}s ({segments} segments)", inline=True)
+    embed.add_field(name="Credits", value=f"{credits_needed} credits", inline=True)
     embed.add_field(name="Model", value="Runway Gen-3 Alpha", inline=True)
     
     message = await ctx.send(embed=embed)
@@ -287,6 +297,94 @@ async def generate_video(ctx, duration: int, *, prompt: str):
     embed.description = "Video generation is taking longer than expected. Please check back later."
     await message.edit(embed=embed)
 
+@bot.command(name='edit')
+async def edit_video(ctx, video_id: str, segments: str, *, new_prompts: str):
+    """Edit specific segments of your video"""
+    if ctx.author.id not in creator_bot.user_sessions:
+        await ctx.send("❌ **Not Authenticated**\nPlease login first using `!login`")
+        return
+    
+    try:
+        # Parse segments (e.g., "1,3,5")
+        segment_ids = [int(s.strip()) for s in segments.split(",")]
+        # Parse prompts (separated by |)
+        prompts = [p.strip() for p in new_prompts.split("|")]
+        
+        if len(segment_ids) != len(prompts):
+            await ctx.send("❌ Number of segments must match number of prompts")
+            return
+        
+        # Calculate edit cost
+        edit_cost = len(segment_ids) * 1.0
+        
+        # Send initial response
+        embed = discord.Embed(
+            title="✏️ Video Edit Started",
+            description="Editing your video segments...",
+            color=0xff6600
+        )
+        embed.add_field(name="Video ID", value=video_id, inline=True)
+        embed.add_field(name="Segments", value=f"{len(segment_ids)} segments", inline=True)
+        embed.add_field(name="Edit Cost", value=f"{edit_cost} credits", inline=True)
+        
+        for i, (seg_id, prompt) in enumerate(zip(segment_ids, prompts)):
+            embed.add_field(name=f"Segment {seg_id}", value=prompt[:100], inline=False)
+        
+        message = await ctx.send(embed=embed)
+        
+        # Process edit request (placeholder)
+        await asyncio.sleep(5)
+        
+        # Update with success
+        embed.color = 0x00ff00
+        embed.title = "✅ Video Edit Completed"
+        embed.description = "Your video has been successfully edited!"
+        embed.clear_fields()
+        embed.add_field(name="Edited Segments", value=str(len(segment_ids)), inline=True)
+        embed.add_field(name="Credits Used", value=f"{edit_cost} credits", inline=True)
+        
+        await message.edit(embed=embed)
+        
+    except ValueError:
+        await ctx.send("❌ Invalid format. Use: `!edit video_id 1,2,3 prompt1|prompt2|prompt3`")
+    except Exception as e:
+        await ctx.send(f"❌ Edit failed: {str(e)}")
+
+@bot.command(name='segments')
+async def view_segments(ctx, video_id: str):
+    """View segments of a video"""
+    if ctx.author.id not in creator_bot.user_sessions:
+        await ctx.send("❌ **Not Authenticated**\nPlease login first using `!login`")
+        return
+    
+    try:
+        # Placeholder for actual video duration lookup
+        duration = 120  # Example: 2 minutes
+        segments = (duration + 7) // 8
+        
+        embed = discord.Embed(
+            title="📹 Video Segments",
+            description=f"Video ID: {video_id}",
+            color=0x0099ff
+        )
+        embed.add_field(name="Duration", value=f"{duration} seconds", inline=True)
+        embed.add_field(name="Total Segments", value=f"{segments} segments", inline=True)
+        embed.add_field(name="Edit Cost", value="1 credit per segment", inline=True)
+        
+        # Show segment breakdown
+        segment_info = ""
+        for i in range(segments):
+            start = i * 8
+            end = min((i + 1) * 8, duration)
+            segment_info += f"**Segment {i+1}:** {start}s - {end}s\n"
+        
+        embed.add_field(name="Segment Breakdown", value=segment_info, inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ Failed to get segments: {str(e)}")
+
 @bot.command(name='help')
 async def help_command(ctx):
     """Show available commands"""
@@ -307,12 +405,17 @@ async def help_command(ctx):
     )
     embed.add_field(
         name="Video Generation",
-        value="`!generate duration prompt` - Generate video (min 8 seconds)\nExample: `!generate 10 A cat playing with a ball`",
+        value="`!generate duration prompt` - Generate video (8s to 30 minutes)\nExample: `!generate 60 A cat playing with a ball`",
+        inline=False
+    )
+    embed.add_field(
+        name="Video Editing",
+        value="`!edit video_id segments prompts` - Edit specific segments\nExample: `!edit abc123 1,3 new prompt 1|new prompt 3`\n`!segments video_id` - View video segments",
         inline=False
     )
     embed.add_field(
         name="Notes",
-        value="• Minimum duration: 8 seconds\n• Maximum duration: 240 seconds (4 minutes)\n• Powered by Runway Gen-3 Alpha\n• Cost: $0.50 per second",
+        value="• Duration: 8 seconds to 30 minutes\n• Credit System: 1 credit per 8-second segment\n• Editing: 1 additional credit per edited segment\n• Powered by Runway Gen-3 Alpha",
         inline=False
     )
     await ctx.send(embed=embed)

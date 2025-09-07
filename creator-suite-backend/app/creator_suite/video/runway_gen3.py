@@ -50,8 +50,14 @@ class RunwayGen3Provider(BaseProvider):
         
         if duration < 8:
             raise ValueError("Minimum duration is 8 seconds")
-        if duration > 240:
-            raise ValueError("Maximum duration is 240 seconds (4 minutes)")
+        if duration > 1800:
+            raise ValueError("Maximum duration is 1800 seconds (30 minutes)")
+        
+        # Duration must be multiple of 8 for credit calculation
+        if duration % 8 != 0:
+            # Round up to nearest 8-second segment
+            duration = ((duration + 7) // 8) * 8
+            validated["adjusted_duration"] = duration
         
         validated["duration"] = duration
         
@@ -71,11 +77,24 @@ class RunwayGen3Provider(BaseProvider):
         return validated
     
     async def calculate_cost(self, input_data: Dict[str, Any]) -> float:
-        """Calculate cost for Runway Gen-3 Alpha generation"""
+        """Calculate cost for Runway Gen-3 Alpha generation based on 8-second segments"""
         duration = input_data.get("duration", 10)
-        cost_per_second = 0.50  # $0.50 per second for Gen-3 Alpha
         
-        total_cost = duration * cost_per_second
+        # Calculate number of 8-second segments (rounded up)
+        segments = (duration + 7) // 8
+        cost_per_segment = 1.0  # 1 credit per 8-second segment
+        
+        # Check if this is an edit operation
+        is_edit = input_data.get("is_edit", False)
+        edit_segments = input_data.get("edit_segments", [])
+        
+        if is_edit and edit_segments:
+            # Additional cost for edited segments
+            additional_cost = len(edit_segments) * cost_per_segment
+            total_cost = segments * cost_per_segment + additional_cost
+        else:
+            total_cost = segments * cost_per_segment
+        
         return round(total_cost, 2)
     
     async def _make_api_request(self, method: str, endpoint: str, data: Dict = None) -> Optional[Dict]:
@@ -148,8 +167,8 @@ class RunwayGen3Provider(BaseProvider):
             logger.info(f"Runway generation task created: {task_id}")
             
             # Poll for completion
-            max_attempts = 600  # 10 minutes for longer videos
-            poll_interval = 1  # 1 second
+            max_attempts = 1800  # 30 minutes for very long videos
+            poll_interval = 2  # 2 seconds for longer videos
             
             for attempt in range(max_attempts):
                 await asyncio.sleep(poll_interval)
@@ -243,12 +262,13 @@ class RunwayGen3Provider(BaseProvider):
             return {
                 "name": "gen3a_turbo",
                 "type": "video",
-                "description": "Runway Gen-3 Alpha Turbo - Fast, high-quality video generation",
-                "max_duration": 240,
+                "description": "Runway Gen-3 Alpha Turbo - Fast, high-quality video generation up to 30 minutes",
+                "max_duration": 1800,
                 "min_duration": 8,
                 "supported_resolutions": ["1280x768", "768x1280", "1024x1024"],
-                "cost_per_second": 0.50,
-                "estimated_time": "60-300 seconds"
+                "cost_per_segment": 1.0,
+                "segment_length": 8,
+                "estimated_time": "60-600 seconds"
             }
         else:
             return {
@@ -270,14 +290,16 @@ class RunwayGen3Provider(BaseProvider):
                 "Text-to-video generation"
             ],
             "pricing": {
-                "model": "per_second",
-                "cost_per_second": 0.50,
-                "currency": "USD"
+                "model": "per_segment",
+                "cost_per_segment": 1.0,
+                "segment_length": 8,
+                "currency": "USD",
+                "edit_cost": "1 credit per edited segment"
             },
             "limits": {
-                "max_duration": 240,
+                "max_duration": 1800,
                 "min_duration": 8,
                 "max_prompt_length": 500,
-                "max_requests_per_minute": 10
+                "max_requests_per_minute": 5
             }
         }

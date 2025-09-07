@@ -34,9 +34,9 @@ async def add_runway_gen3_service():
             provider="runway",
             service_type="video",
             model_name="gen3a_turbo",
-            description="Runway Gen-3 Alpha Turbo - High-quality video generation with 8-240 second duration",
+            description="Runway Gen-3 Alpha Turbo - High-quality video generation with 8-1800 second duration and segment-based editing",
             is_active=True,
-            base_cost_per_unit=0.50,  # $0.50 per second
+            base_cost_per_unit=1.0,  # 1 credit per 8-second segment
             max_requests_per_minute=10,
             supported_formats=["mp4", "mov"],
             input_schema={
@@ -51,7 +51,7 @@ async def add_runway_gen3_service():
                         "type": "integer",
                         "description": "Video duration in seconds",
                         "minimum": 8,
-                        "maximum": 240,
+                        "maximum": 1800,
                         "default": 10
                     },
                     "resolution": {
@@ -92,14 +92,14 @@ async def add_runway_gen3_service():
             },
             pricing_tiers={
                 "standard": {
-                    "cost_per_second": 0.50,
-                    "max_duration": 240,
-                    "max_requests_per_hour": 50
+                    "cost_per_segment": 1.0,
+                    "max_duration": 1800,
+                    "max_requests_per_hour": 20
                 },
                 "premium": {
-                    "cost_per_second": 0.40,
-                    "max_duration": 240,
-                    "max_requests_per_hour": 100
+                    "cost_per_segment": 0.8,
+                    "max_duration": 1800,
+                    "max_requests_per_hour": 50
                 }
             }
         )
@@ -111,8 +111,9 @@ async def add_runway_gen3_service():
         print(f"✅ Successfully added Runway Gen-3 Alpha service with ID: {runway_service.id}")
         print(f"   Provider: {runway_service.provider}")
         print(f"   Model: {runway_service.model_name}")
-        print(f"   Cost per second: ${runway_service.base_cost_per_unit}")
-        print(f"   Duration range: 8-240 seconds (up to 4 minutes)")
+        print(f"   Cost per segment: {runway_service.base_cost_per_unit} credits")
+        print(f"   Duration range: 8-1800 seconds (up to 30 minutes)")
+        print(f"   Segment-based: 8-second segments with editing support")
         
         return runway_service.id
         
