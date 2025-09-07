@@ -72,6 +72,27 @@ class RunwayGen3Provider(BaseProvider):
             raise ValueError("Only gen3a_turbo model is supported")
         validated["model"] = model
         
+        # Seed image validation (optional)
+        seed_image = input_data.get("seed_image")
+        if seed_image:
+            if isinstance(seed_image, str):
+                # Assume it's a URL or base64 string
+                if not (seed_image.startswith("http") or seed_image.startswith("data:image")):
+                    raise ValueError("Seed image must be a valid URL or base64 data URI")
+                validated["seed_image"] = seed_image
+            else:
+                raise ValueError("Seed image must be a string (URL or base64)")
+        
+        # Image-to-video specific options
+        seed_influence = input_data.get("seed_influence", 0.8)
+        try:
+            seed_influence = float(seed_influence)
+            if not (0.0 <= seed_influence <= 1.0):
+                raise ValueError("Seed influence must be between 0.0 and 1.0")
+            validated["seed_influence"] = seed_influence
+        except (ValueError, TypeError):
+            raise ValueError("Seed influence must be a number between 0.0 and 1.0")
+        
         return validated
     
     async def calculate_cost(self, input_data: Dict[str, Any]) -> float:
@@ -142,6 +163,12 @@ class RunwayGen3Provider(BaseProvider):
                 "response_format": "mp4"
             }
             
+            # Add seed image if provided
+            if validated_input.get("seed_image"):
+                generation_data["image"] = validated_input["seed_image"]
+                generation_data["seed_influence"] = validated_input.get("seed_influence", 0.8)
+                logger.info(f"Using seed image with influence: {generation_data['seed_influence']}")
+            
             logger.info(f"Starting Runway Gen-3 Alpha generation: {validated_input['prompt'][:100]}...")
             
             # Create generation task
@@ -184,6 +211,20 @@ class RunwayGen3Provider(BaseProvider):
                     if output and isinstance(output, list) and len(output) > 0:
                         video_url = output[0]
                         
+                        metadata = {
+                            "prompt": validated_input["prompt"],
+                            "model": "gen3a_turbo",
+                            "duration": validated_input["duration"],
+                            "resolution": validated_input["resolution"],
+                            "task_id": task_id,
+                            "provider": self.provider_name
+                        }
+                        
+                        # Add seed image metadata if used
+                        if validated_input.get("seed_image"):
+                            metadata["has_seed_image"] = True
+                            metadata["seed_influence"] = validated_input.get("seed_influence", 0.8)
+                        
                         return {
                             "success": True,
                             "output": {
@@ -194,14 +235,7 @@ class RunwayGen3Provider(BaseProvider):
                                 "model": "gen3a_turbo"
                             },
                             "assets": [{"url": video_url, "type": "video"}],
-                            "metadata": {
-                                "prompt": validated_input["prompt"],
-                                "model": "gen3a_turbo",
-                                "duration": validated_input["duration"],
-                                "resolution": validated_input["resolution"],
-                                "task_id": task_id,
-                                "provider": self.provider_name
-                            },
+                            "metadata": metadata,
                             "provider": self.provider_name
                         }
                     else:
@@ -260,13 +294,22 @@ class RunwayGen3Provider(BaseProvider):
             return {
                 "name": "gen3a_turbo",
                 "type": "video",
-                "description": "Runway Gen-3 Alpha Turbo - Fast, high-quality video generation up to 30 minutes",
+                "description": "Runway Gen-3 Alpha Turbo - Fast, high-quality video generation up to 30 minutes with seed image support",
                 "max_duration": 1800,
                 "min_duration": 8,
                 "supported_resolutions": ["1280x768", "768x1280", "1024x1024"],
                 "cost_per_segment": 1.0,
                 "segment_length": 8,
-                "estimated_time": "60-600 seconds"
+                "estimated_time": "60-600 seconds",
+                "features": [
+                    "Text-to-video generation",
+                    "Image-to-video generation (seed images)",
+                    "Variable duration (8-1800 seconds)",
+                    "Multiple aspect ratios",
+                    "High-quality output"
+                ],
+                "seed_image_support": True,
+                "seed_influence_range": [0.0, 1.0]
             }
         else:
             return {
@@ -282,10 +325,12 @@ class RunwayGen3Provider(BaseProvider):
             "type": "video",
             "supported_formats": ["mp4"],
             "features": [
-                "8-30 second video generation",
+                "8-1800 second video generation",
                 "Multiple resolution options",
                 "High-quality output",
-                "Text-to-video generation"
+                "Text-to-video generation",
+                "Image-to-video generation (seed images)",
+                "Adjustable seed influence"
             ],
             "pricing": {
                 "model": "per_segment",
@@ -299,5 +344,11 @@ class RunwayGen3Provider(BaseProvider):
                 "min_duration": 8,
                 "max_prompt_length": 500,
                 "max_requests_per_minute": 5
+            },
+            "seed_image": {
+                "supported": True,
+                "formats": ["URL", "base64"],
+                "influence_range": [0.0, 1.0],
+                "default_influence": 0.8
             }
         }
