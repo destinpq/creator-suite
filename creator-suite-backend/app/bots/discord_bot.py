@@ -197,8 +197,13 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         await interaction.followup.send("❌ Maximum duration is 1800 seconds (30 minutes)", ephemeral=True)
         return
     
+    # Duration must be multiple of 8 seconds
+    if duration % 8 != 0:
+        await interaction.followup.send("❌ Duration must be a multiple of 8 seconds\nValid durations: 8, 16, 24, 32, 40, 48, 56, 64... up to 1800", ephemeral=True)
+        return
+    
     # Calculate credits needed (1 credit per 8-second segment)
-    segments = (duration + 7) // 8
+    segments = duration // 8
     credits_needed = segments * 1.0
     
     token = bot.user_sessions[ctx.author.id]
@@ -216,9 +221,8 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         }
     }
     
-    # Calculate credits and adjusted duration
-    segments = (duration + 7) // 8
-    adjusted_duration = segments * 8
+    # Calculate credits and segment info
+    segments = duration // 8
     credits_needed = segments * 1.0
     
     # Send initial response
@@ -228,7 +232,7 @@ async def generate_video(ctx, duration: int, *, prompt: str):
         color=0xffaa00
     )
     embed.add_field(name="Prompt", value=prompt[:1000], inline=False)
-    embed.add_field(name="Duration", value=f"{duration}s → {adjusted_duration}s ({segments} segments)", inline=True)
+    embed.add_field(name="Duration", value=f"{duration}s ({segments} segments)", inline=True)
     embed.add_field(name="Credits", value=f"{credits_needed} credits", inline=True)
     embed.add_field(name="Model", value="Runway Gen-3 Alpha", inline=True)
     
@@ -405,7 +409,7 @@ async def help_command(ctx):
     )
     embed.add_field(
         name="Video Generation",
-        value="`!generate duration prompt` - Generate video (8s to 30 minutes)\nExample: `!generate 60 A cat playing with a ball`",
+        value="`!generate duration prompt` - Generate video (multiples of 8: 8, 16, 24...)\nExample: `!generate 64 A cat playing with a ball`",
         inline=False
     )
     embed.add_field(
@@ -415,7 +419,7 @@ async def help_command(ctx):
     )
     embed.add_field(
         name="Notes",
-        value="• Duration: 8 seconds to 30 minutes\n• Credit System: 1 credit per 8-second segment\n• Editing: 1 additional credit per edited segment\n• Powered by Runway Gen-3 Alpha",
+        value="• Duration: Multiple of 8 seconds (8, 16, 24, 32...)\n• Max: 30 minutes (1800 seconds)\n• Credit System: 1 credit per 8-second segment\n• Editing: 1 additional credit per edited segment\n• Powered by Runway Gen-3 Alpha",
         inline=False
     )
     await ctx.send(embed=embed)

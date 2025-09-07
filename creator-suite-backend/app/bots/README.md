@@ -173,7 +173,7 @@ python scripts/run_whatsapp_bot.py
 1. Invite the bot to your Discord server
 2. Use `/login` to authenticate
 3. Check credits with `/credits`
-4. Generate a video: `/generate duration:60 prompt:A cat playing with a ball`
+4. Generate a video: `/generate duration:64 prompt:A cat playing with a ball`
 5. Edit segments: `/edit video_id 1,3 new prompt 1|new prompt 3`
 6. View segments: `/segments video_id`
 
@@ -181,7 +181,7 @@ python scripts/run_whatsapp_bot.py
 1. Start a chat with your bot
 2. Send `/login your@email.com yourpassword`
 3. Check credits: `/credits`
-4. Generate video: `/generate 60 A cat playing with a ball`
+4. Generate video: `/generate 64 A cat playing with a ball`
 5. Edit segments: `/edit video_id 1,3 new prompt 1|new prompt 3`
 6. View segments: `/segments video_id`
 
@@ -189,15 +189,16 @@ python scripts/run_whatsapp_bot.py
 1. Send "LOGIN" to start authentication
 2. Follow the prompts to enter email and password
 3. Send "CREDITS" to check balance
-4. Send "GENERATE" and follow prompts for video creation
+4. Send "GENERATE" and follow prompts (use multiples of 8: 8, 16, 24, 32...)
 5. Send "EDIT" to modify specific video segments
 6. Send "SEGMENTS" to view video breakdown
 
 ## Video Generation Specifications
 
 - **Model**: Runway Gen-3 Alpha Turbo
-- **Duration**: 8-1800 seconds (8 seconds to 30 minutes)
-- **Segment System**: 8-second segments for credit calculation
+- **Duration**: Multiples of 8 seconds only (8, 16, 24, 32, 40... up to 1800)
+- **Maximum**: 30 minutes (1800 seconds)
+- **Segment System**: Exact 8-second segments for credit calculation
 - **Resolutions**: 1280x768, 768x1280, 1024x1024
 - **Format**: MP4
 - **Cost**: 1 credit per 8-second segment

@@ -53,11 +53,9 @@ class RunwayGen3Provider(BaseProvider):
         if duration > 1800:
             raise ValueError("Maximum duration is 1800 seconds (30 minutes)")
         
-        # Duration must be multiple of 8 for credit calculation
+        # Duration must be a multiple of 8 seconds
         if duration % 8 != 0:
-            # Round up to nearest 8-second segment
-            duration = ((duration + 7) // 8) * 8
-            validated["adjusted_duration"] = duration
+            raise ValueError(f"Duration must be a multiple of 8 seconds. Valid durations: 8, 16, 24, 32, 40, 48, 56, 64... up to 1800")
         
         validated["duration"] = duration
         
@@ -78,10 +76,10 @@ class RunwayGen3Provider(BaseProvider):
     
     async def calculate_cost(self, input_data: Dict[str, Any]) -> float:
         """Calculate cost for Runway Gen-3 Alpha generation based on 8-second segments"""
-        duration = input_data.get("duration", 10)
+        duration = input_data.get("duration", 16)
         
-        # Calculate number of 8-second segments (rounded up)
-        segments = (duration + 7) // 8
+        # Duration must be multiple of 8, so calculate segments directly
+        segments = duration // 8
         cost_per_segment = 1.0  # 1 credit per 8-second segment
         
         # Check if this is an edit operation

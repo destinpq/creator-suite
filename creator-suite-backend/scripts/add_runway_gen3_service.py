@@ -34,7 +34,7 @@ async def add_runway_gen3_service():
             provider="runway",
             service_type="video",
             model_name="gen3a_turbo",
-            description="Runway Gen-3 Alpha Turbo - High-quality video generation with 8-1800 second duration and segment-based editing",
+            description="Runway Gen-3 Alpha Turbo - High-quality video generation with 8-1800 second duration (multiples of 8 only) and segment-based editing",
             is_active=True,
             base_cost_per_unit=1.0,  # 1 credit per 8-second segment
             max_requests_per_minute=10,
@@ -49,10 +49,11 @@ async def add_runway_gen3_service():
                     },
                     "duration": {
                         "type": "integer",
-                        "description": "Video duration in seconds",
+                        "description": "Video duration in seconds (must be multiple of 8)",
                         "minimum": 8,
                         "maximum": 1800,
-                        "default": 10
+                        "default": 16,
+                        "multipleOf": 8
                     },
                     "resolution": {
                         "type": "string",
@@ -112,7 +113,8 @@ async def add_runway_gen3_service():
         print(f"   Provider: {runway_service.provider}")
         print(f"   Model: {runway_service.model_name}")
         print(f"   Cost per segment: {runway_service.base_cost_per_unit} credits")
-        print(f"   Duration range: 8-1800 seconds (up to 30 minutes)")
+        print(f"   Duration range: 8-1800 seconds (multiples of 8 only)")
+        print(f"   Valid durations: 8, 16, 24, 32, 40, 48... up to 1800")
         print(f"   Segment-based: 8-second segments with editing support")
         
         return runway_service.id

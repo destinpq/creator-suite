@@ -22,7 +22,9 @@ class VideoSegmentEditor:
     
     def calculate_segments(self, duration: int) -> int:
         """Calculate number of 8-second segments for given duration"""
-        return (duration + 7) // 8
+        if duration % 8 != 0:
+            raise ValueError("Duration must be a multiple of 8 seconds")
+        return duration // 8
     
     def get_segment_timestamps(self, duration: int) -> List[Dict[str, int]]:
         """Get start/end timestamps for each 8-second segment"""
@@ -44,7 +46,10 @@ class VideoSegmentEditor:
     
     def calculate_edit_cost(self, original_duration: int, edited_segments: List[int]) -> Dict[str, Any]:
         """Calculate cost for editing specific segments"""
-        total_segments = self.calculate_segments(original_duration)
+        if original_duration % 8 != 0:
+            raise ValueError("Duration must be a multiple of 8 seconds")
+            
+        total_segments = original_duration // 8
         original_cost = total_segments * self.credit_per_segment
         edit_cost = len(edited_segments) * self.credit_per_segment
         total_cost = original_cost + edit_cost

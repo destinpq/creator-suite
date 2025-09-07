@@ -16,7 +16,12 @@ from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-from datetime import datetime
+from datetime*Notes:*
+• Duration: Multiples of 8 seconds (8, 16, 24, 32...)
+• Maximum: 30 minutes (1800 seconds)
+• Credit System: 1 credit per 8-second segment
+• Editing: 1 additional credit per edited segment
+• Powered by Runway Gen-3 Alphart datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -165,7 +170,7 @@ I can help you generate amazing videos using Runway Gen-3 Alpha!
 2. Check your credits with CREDITS
 3. Generate videos with GENERATE
 
-Minimum video duration: 8 seconds
+Duration: Multiples of 8 seconds (8, 16, 24, 32... up to 1800)
 Maximum video duration: 1800 seconds (30 minutes)"""
         
         buttons = [
@@ -310,8 +315,8 @@ Click the link to complete payment."""
         self.user_states[phone_number] = "awaiting_duration"
         message = """🎬 *Generate Video*
 
-Please send the video duration in seconds (8-1800):
-Example: 60"""
+Please send the video duration in seconds (multiples of 8):
+Examples: 8, 16, 24, 32, 40, 48, 56, 64..."""
         await self.send_whatsapp_message(phone_number, message)
 
     async def handle_duration_input(self, phone_number: str, duration_str: str) -> None:
@@ -319,7 +324,7 @@ Example: 60"""
         try:
             duration = int(duration_str)
         except ValueError:
-            await self.send_whatsapp_message(phone_number, "❌ Invalid duration. Please enter a number between 8-1800 seconds.")
+            await self.send_whatsapp_message(phone_number, "❌ Invalid duration. Please enter a multiple of 8 seconds (8, 16, 24, 32...).")
             return
         
         if duration < 8:
@@ -328,6 +333,11 @@ Example: 60"""
         
         if duration > 1800:
             await self.send_whatsapp_message(phone_number, "❌ Maximum duration is 1800 seconds (30 minutes)")
+            return
+        
+        # Duration must be multiple of 8 seconds
+        if duration % 8 != 0:
+            await self.send_whatsapp_message(phone_number, "❌ Duration must be a multiple of 8 seconds\nValid durations: 8, 16, 24, 32, 40, 48, 56, 64... up to 1800")
             return
         
         self.user_states[phone_number] = f"awaiting_prompt:{duration}"

@@ -96,7 +96,7 @@ I can help you generate amazing videos using Runway Gen-3 Alpha!
 2. Check your credits with `/credits`
 3. Generate videos with `/generate duration prompt`
 
-Minimum video duration: 8 seconds
+Duration: Multiples of 8 seconds (8, 16, 24, 32... up to 1800)
 Maximum video duration: 1800 seconds (30 minutes)
 """
     await update.message.reply_text(welcome_text, parse_mode='Markdown')
@@ -232,8 +232,8 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if len(context.args) < 2:
         await update.message.reply_text(
             "❌ Usage: `/generate duration prompt`\n"
-            "Example: `/generate 60 A cat playing with a ball`\n"
-            "Duration: 8-1800 seconds (up to 30 minutes)",
+            "Example: `/generate 64 A cat playing with a ball`\n"
+            "Duration: Multiples of 8 seconds (8, 16, 24, 32... up to 1800)",
             parse_mode='Markdown'
         )
         return
@@ -252,9 +252,13 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text("❌ Maximum duration is 1800 seconds (30 minutes)")
         return
     
+    # Duration must be multiple of 8 seconds
+    if duration % 8 != 0:
+        await update.message.reply_text("❌ Duration must be a multiple of 8 seconds\nValid durations: 8, 16, 24, 32, 40, 48, 56, 64... up to 1800")
+        return
+    
     # Calculate credits needed
-    segments = (duration + 7) // 8
-    adjusted_duration = segments * 8
+    segments = duration // 8
     credits_needed = segments * 1.0
     
     prompt = ' '.join(context.args[1:])
@@ -278,7 +282,7 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 🎬 **Video Generation Started**
 
 Prompt: {prompt[:500]}
-Duration: {duration}s → {adjusted_duration}s ({segments} segments)
+Duration: {duration}s ({segments} segments)
 Credits: {credits_needed} credits
 Model: Runway Gen-3 Alpha
 
@@ -491,8 +495,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 /topup amount - Top-up credits via Razorpay
 
 **Video Generation:**
-/generate duration prompt - Generate video (8s to 30 minutes)
-Example: `/generate 60 A cat playing with a ball`
+/generate duration prompt - Generate video (multiples of 8: 8, 16, 24, 32...)
+Example: `/generate 64 A cat playing with a ball`
 
 **Video Editing:**
 /edit video_id segments prompts - Edit specific segments
@@ -500,7 +504,8 @@ Example: `/edit abc123 1,3 new prompt 1|new prompt 3`
 /segments video_id - View video segments
 
 **Notes:**
-• Duration: 8 seconds to 30 minutes
+• Duration: Multiples of 8 seconds (8, 16, 24, 32...)
+• Maximum: 30 minutes (1800 seconds)
 • Credit System: 1 credit per 8-second segment
 • Editing: 1 additional credit per edited segment
 • Powered by Runway Gen-3 Alpha
