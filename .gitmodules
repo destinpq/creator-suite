@@ -1,0 +1,6 @@
+[submodule "creator-suite-backend"]
+	path = creator-suite-backend
+	url = https://github.com/TheStarkster/creator-suite-backend
+[submodule "creator-suite-frontend"]
+	path = creator-suite-frontend
+	url = https://github.com/TheStarkster/creator-suite-frontend
