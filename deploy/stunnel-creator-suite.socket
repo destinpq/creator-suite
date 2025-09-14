@@ -1,0 +1,14 @@
+[Unit]
+Description=stunnel socket for Creator Suite TLS (55555/55556)
+
+[Socket]
+AddressFamily=inet
+ListenStream=0.0.0.0:55555
+ListenStream=0.0.0.0:55556
+Accept=no
+SocketUser=root
+SocketGroup=root
+SocketMode=0640
+
+[Install]
+WantedBy=sockets.target

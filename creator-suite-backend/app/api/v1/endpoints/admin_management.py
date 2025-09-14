@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 
 from app.api.deps import get_db, get_current_admin_user
 from app.models.user import User
@@ -293,3 +294,247 @@ def delete_user_endpoint(
     
     deleted_user = delete_user(db, user_id)
     return deleted_user
+
+
+# New comprehensive admin management endpoints
+
+@router.get("/users", response_model=List[UserSchema])
+def get_all_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+    skip: int = 0,
+    limit: int = 100,
+    search: str = None,
+    is_active: bool = None,
+    is_admin: bool = None
+):
+    """Get all users with filtering and pagination"""
+    from app.api.deps import log_admin_activity
+    from sqlalchemy import or_
+
+    query = db.query(User)
+
+    if search:
+        query = query.filter(
+            or_(
+                User.email.contains(search),
+                User.username.contains(search),
+                User.name.contains(search)
+            )
+        )
+
+    if is_active is not None:
+        query = query.filter(User.is_active == is_active)
+
+    if is_admin is not None:
+        query = query.filter(User.is_admin == is_admin)
+
+    users = query.offset(skip).limit(limit).all()
+
+    # Log admin activity
+    log_admin_activity(
+        db, current_user.id, "users_listed",
+        f"Listed users with filters: search={search}, active={is_active}, admin={is_admin}",
+        metadata={"filters": {"search": search, "is_active": is_active, "is_admin": is_admin}}
+    )
+
+    return users
+
+
+@router.put("/users/{user_id}/credits")
+def modify_user_credits(
+    user_id: int,
+    amount: float,
+    reason: str = "Admin adjustment",
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Add or subtract credits from user"""
+    from app.api.deps import log_admin_activity
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    old_credits = user.credits
+    user.credits += amount
+    user.updated_at = datetime.utcnow()
+    db.commit()
+
+    # Log admin activity
+    log_admin_activity(
+        db, current_user.id, "user_credits_modified",
+        f"Modified credits for user {user.username} (ID: {user_id}): {old_credits} -> {user.credits}",
+        old_values={"credits": old_credits},
+        new_values={"credits": user.credits},
+        target_user_id=user_id,
+        metadata={"amount": amount, "reason": reason}
+    )
+
+    return {"message": f"Credits updated successfully. New balance: {user.credits}"}
+
+
+@router.get("/audit-logs")
+def get_admin_audit_logs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+    skip: int = 0,
+    limit: int = 50,
+    admin_id: int = None,
+    action: str = None,
+    target_user_id: int = None,
+    search: str = None,
+    admin_username: str = None,
+    date_from: str = None,
+    date_to: str = None
+):
+    """Get admin audit logs"""
+    from app.models.admin import AdminAuditLog
+    from sqlalchemy import or_
+
+    query = db.query(AdminAuditLog)
+
+    if admin_id:
+        query = query.filter(AdminAuditLog.admin_id == admin_id)
+    if action:
+        query = query.filter(AdminAuditLog.action == action)
+    if target_user_id:
+        query = query.filter(AdminAuditLog.target_user_id == target_user_id)
+
+    if search:
+        query = query.filter(
+            or_(
+                AdminAuditLog.action.ilike(f"%{search}%"),
+                AdminAuditLog.resource.ilike(f"%{search}%"),
+                AdminAuditLog.details.ilike(f"%{search}%")
+            )
+        )
+
+    if admin_username:
+        query = query.join(User, AdminAuditLog.admin_id == User.id).filter(User.username == admin_username)
+
+    if date_from:
+        query = query.filter(AdminAuditLog.created_at >= date_from)
+
+    if date_to:
+        query = query.filter(AdminAuditLog.created_at <= date_to)
+
+    logs = query.order_by(AdminAuditLog.created_at.desc()).offset(skip).limit(limit).all()
+
+    # Format for frontend
+    result = []
+    for log in logs:
+        admin = db.query(User).filter(User.id == log.admin_id).first()
+        result.append({
+            "id": log.id,
+            "admin_id": log.admin_id,
+            "admin_username": admin.username if admin else "Unknown",
+            "action": log.action,
+            "resource": log.resource,
+            "details": log.details,
+            "ip_address": log.ip_address,
+            "user_agent": log.user_agent,
+            "created_at": log.created_at.isoformat()
+        })
+
+    return result
+
+
+@router.get("/activity-logs")
+def get_user_activity_logs(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user),
+    skip: int = 0,
+    limit: int = 100,
+    user_id: int = None,
+    activity_type: str = None,
+    is_bot_activity: bool = None,
+    search: str = None,
+    action: str = None,
+    username: str = None,
+    date_from: str = None,
+    date_to: str = None
+):
+    """Get user activity logs"""
+    from app.models.admin import UserActivityLog
+    from sqlalchemy import or_
+
+    query = db.query(UserActivityLog)
+
+    if user_id:
+        query = query.filter(UserActivityLog.user_id == user_id)
+    if activity_type:
+        query = query.filter(UserActivityLog.activity_type == activity_type)
+    if is_bot_activity is not None:
+        query = query.filter(UserActivityLog.is_bot_activity == is_bot_activity)
+
+    if search:
+        query = query.filter(
+            or_(
+                UserActivityLog.action.ilike(f"%{search}%"),
+                UserActivityLog.resource.ilike(f"%{search}%"),
+                UserActivityLog.details.ilike(f"%{search}%")
+            )
+        )
+
+    if action:
+        query = query.filter(UserActivityLog.action == action)
+
+    if username:
+        query = query.join(User, UserActivityLog.user_id == User.id).filter(User.username == username)
+
+    if date_from:
+        query = query.filter(UserActivityLog.created_at >= date_from)
+
+    if date_to:
+        query = query.filter(UserActivityLog.created_at <= date_to)
+
+    logs = query.order_by(UserActivityLog.created_at.desc()).offset(skip).limit(limit).all()
+
+    # Format for frontend
+    result = []
+    for log in logs:
+        user = db.query(User).filter(User.id == log.user_id).first()
+        result.append({
+            "id": log.id,
+            "user_id": log.user_id,
+            "username": user.username if user else "Unknown",
+            "action": log.action,
+            "resource": log.resource,
+            "details": log.details,
+            "ip_address": log.ip_address,
+            "user_agent": log.user_agent,
+            "session_id": log.session_id,
+            "created_at": log.created_at.isoformat()
+        })
+
+    return result
+
+
+@router.get("/stats")
+def get_admin_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_admin_user)
+):
+    """Get admin dashboard statistics"""
+    from datetime import datetime, timedelta
+    from app.models.admin import UserActivityLog
+
+    total_users = db.query(User).count()
+    active_users = db.query(User).filter(User.is_active == True).count()
+    admin_users = db.query(User).filter(User.is_admin == True).count()
+    total_credits = db.query(User).with_entities(db.func.sum(User.credits)).scalar() or 0
+
+    # Recent activity (last 24 hours)
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    recent_logs = db.query(UserActivityLog).filter(
+        UserActivityLog.created_at >= yesterday
+    ).count()
+
+    return {
+        "total_users": total_users,
+        "active_users": active_users,
+        "admin_users": admin_users,
+        "total_credits": total_credits,
+        "recent_activity": recent_logs
+    }

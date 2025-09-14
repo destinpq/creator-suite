@@ -1,0 +1,37 @@
+{
+  "name": "creator-suite-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 55555",
+    "build": "next build",
+    "build:analyze": "ANALYZE=true next build",
+    "start": "next start -p 55555",
+    "start:prod": "NODE_ENV=production next start -p 55555",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
+    "export": "next export"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "axios": "^1.4.0",
+    "dayjs": "^1.11.13",
+    "next": "14.2.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-icons": "^4.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.3",
+    "@types/react": "^19.1.13",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "puppeteer": "^24.20.0",
+    "string-replace-loader": "^3.2.0",
+    "tailwindcss": "^4.1.13",
+    "typescript": "^5.9.2",
+    "web-vitals": "^3.5.0",
+    "webpack-bundle-analyzer": "^4.9.0"
+  }
+}

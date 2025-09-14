@@ -157,3 +157,46 @@ def download_media(task_id: str, db: Session = Depends(get_db)):
         filename=filename,
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.get("/showcase")
+def get_showcase(db: Session = Depends(get_db)):
+    """
+    Get showcase content for the homepage.
+    Returns featured creations and media for display.
+    """
+    # Get recent completed tasks for showcase
+    tasks = db.query(CreationTask).filter(
+        CreationTask.status == "completed"
+    ).order_by(CreationTask.created_at.desc()).limit(12).all()
+
+    showcase_items = []
+    for task in tasks:
+        item = {
+            "id": task.id,
+            "title": task.input_data.get("prompt", "Generated Content")[:80] if task.input_data else "Generated Content",
+            "type": task.task_type,
+            "created_at": task.created_at.isoformat() if task.created_at else None,
+            "status": task.status
+        }
+
+        # Add media URLs if available
+        if task.task_type == "video" and task.local_video_url:
+            item["video_url"] = f"/api/v1/media/videos/{task.id}"
+            item["thumbnail_url"] = f"/api/v1/media/thumbnails/{task.id}" if task.local_thumbnail_url else None
+        elif task.task_type == "image" and task.local_image_url:
+            item["image_url"] = f"/api/v1/media/images/{task.id}"
+
+        showcase_items.append(item)
+
+    return {
+        "showcase": showcase_items,
+        "total_count": len(showcase_items),
+        "message": "Showcase content retrieved successfully"
+    }
+
+
+@router.options("/showcase")
+def media_showcase_options():
+    """Handle CORS preflight for media showcase endpoint"""
+    return {"message": "OK"}

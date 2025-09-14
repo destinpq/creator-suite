@@ -66,17 +66,15 @@ class CreatorSuiteBot(commands.Bot):
 
     async def authenticate_user(self, email: str, password: str) -> Optional[str]:
         """Authenticate user and return access token"""
-        auth_data = f"username={email}&password={password}&email={email}"
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+        auth_data = {"email": email, "password": password}
+        headers = {'Content-Type': 'application/json'}
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"{self.api_base}/auth/login", headers=headers, data=auth_data) as response:
+                async with session.post(f"{self.api_base}/auth/login-json", headers=headers, json=auth_data) as response:
                     if response.status == 200:
-                        # Extract token from cookies
-                        cookies = response.cookies
-                        if 'access_token' in cookies:
-                            return cookies['access_token'].value
+                        result = await response.json()
+                        return result.get('access_token')
             return None
         except Exception as e:
             logger.error(f"Authentication failed: {e}")
@@ -389,8 +387,8 @@ async def view_segments(ctx, video_id: str):
     except Exception as e:
         await ctx.send(f"❌ Failed to get segments: {str(e)}")
 
-@bot.command(name='help')
-async def help_command(ctx):
+@bot.command(name='commands')
+async def commands_command(ctx):
     """Show available commands"""
     embed = discord.Embed(
         title="🤖 Creator Suite Bot Commands",
@@ -419,7 +417,7 @@ async def help_command(ctx):
     )
     embed.add_field(
         name="Notes",
-        value="• Duration: Multiple of 8 seconds (8, 16, 24, 32...)\n• Max: 30 minutes (1800 seconds)\n• Credit System: 1 credit per 8-second segment\n• Editing: 1 additional credit per edited segment\n• Powered by Runway Gen-3 Alpha",
+        value="- Duration: Multiple of 8 seconds (8, 16, 24, 32...)\n- Max: 30 minutes (1800 seconds)\n- Credit System: 1 credit per 8-second segment\n- Editing: 1 additional credit per edited segment\n- Powered by Runway Gen-3 Alpha",
         inline=False
     )
     await ctx.send(embed=embed)

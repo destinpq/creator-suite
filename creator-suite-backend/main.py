@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from datetime import timedelta
 
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.api.deps import get_db
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -29,32 +33,31 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-@app.get("/", include_in_schema=True)
-async def root():
-    """
-    Root endpoint that provides basic API information and redirects to API documentation.
-    """
-    return {
-        "name": settings.PROJECT_NAME,
-        "version": "1.0.0",
-        "message": "Welcome to the Creator Suite API",
-        "documentation": f"{settings.API_V1_STR}/docs",
-    }
-
-@app.get("/health", include_in_schema=True, tags=["health"])
-async def health_check():
-    """
-    Health check endpoint for monitoring and deployment.
-    
-    Returns a simple status indicating the API is running.
-    """
-    return {"status": "healthy"}
-
 # Mount static files for public storage
 app.mount("/storage", StaticFiles(directory="public/storage"), name="storage")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for deployment verification"""
+    return {"status": "healthy", "message": "Creator Suite API is running"}
+
+# Add a global OPTIONS handler to handle all preflight requests
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    """Global OPTIONS handler for CORS preflight requests"""
+    return {"message": "OK"}
+
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+    # Read port from environment (pm2 sets PORT in ecosystem) with fallback to 8000
+    port = int(os.environ.get("PORT", 8000))
+
+    # Disable reload when running under process manager to avoid address-in-use from the reloader
+    reload = False if os.environ.get("PM2_HOME") else False
+
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload)

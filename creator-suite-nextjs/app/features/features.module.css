@@ -1,0 +1,407 @@
+/* features.module.css - Ultra-professional features page styles with consistent design system */
+
+.featuresHero {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  color: white;
+  padding: 10rem 0 6rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.featuresHero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 25% 75%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 75% 25%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 50%);
+  animation: heroFloat 30s ease-in-out infinite;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  25% { transform: translateY(-25px) scale(1.02); }
+  50% { transform: translateY(-50px) scale(1.04); }
+  75% { transform: translateY(-25px) scale(1.02); }
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.heroTitle {
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-weight: 900;
+  margin-bottom: 2rem;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+}
+
+.heroDesc {
+  font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto 4rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.featuresList {
+  padding: 8rem 0;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  position: relative;
+}
+
+.featuresList::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+}
+
+.featuresContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.featureItem {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 6rem;
+  margin-bottom: 8rem;
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.featureItem:nth-child(even) {
+  grid-template-columns: 1fr 1fr;
+  direction: rtl;
+}
+
+.featureItem:nth-child(even) .featureContent {
+  text-align: right;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.featureContent {
+  padding: 2rem 0;
+}
+
+.featureTitle {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: #0f172a;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  position: relative;
+}
+
+.featureTitle::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 2px;
+}
+
+.featureItem:nth-child(even) .featureTitle::after {
+  left: auto;
+  right: 0;
+}
+
+.featureDesc {
+  font-size: 1.125rem;
+  color: #64748b;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  font-weight: 400;
+}
+
+.featurePoints {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.featurePoint {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.featurePoint:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.featurePointIcon {
+  font-size: 1.5rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.featurePointText {
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.featureImage {
+  height: 400px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 6rem;
+  font-weight: 900;
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.15),
+    0 10px 25px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.featureImage::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="featurePattern" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(255,255,255,0.2)"/></pattern></defs><rect width="100" height="100" fill="url(%23featurePattern)"/></svg>');
+  opacity: 0.3;
+}
+
+.ctaSection {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  padding: 8rem 0;
+  text-align: center;
+  position: relative;
+}
+
+.ctaSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
+
+.ctaContent {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.ctaTitle {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  color: #f1f5f9;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+}
+
+.ctaDesc {
+  font-size: 1.25rem;
+  color: #cbd5e1;
+  margin-bottom: 3rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.ctaButton {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  padding: 1.25rem 2.5rem;
+  border-radius: 50px;
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 10px 25px rgba(59, 130, 246, 0.3),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.ctaButton::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ctaButton:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow:
+    0 20px 40px rgba(59, 130, 246, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.ctaButton:hover::before {
+  left: 100%;
+}
+
+.secondaryButton {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+  padding: 1.25rem 2.5rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.secondaryButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .featureItem {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    margin-bottom: 6rem;
+  }
+
+  .featureItem:nth-child(even) {
+    direction: ltr;
+  }
+
+  .featureItem:nth-child(even) .featureContent {
+    text-align: left;
+  }
+
+  .featureImage {
+    height: 300px;
+    order: -1;
+  }
+
+  .featurePoints {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .featuresHero {
+    padding: 6rem 0 4rem;
+  }
+
+  .heroContent {
+    padding: 0 1rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(2.5rem, 10vw, 3.5rem);
+  }
+
+  .featuresList {
+    padding: 4rem 0;
+  }
+
+  .featuresContainer {
+    padding: 0 1rem;
+  }
+
+  .featureItem {
+    margin-bottom: 4rem;
+  }
+
+  .featureTitle {
+    font-size: clamp(1.75rem, 6vw, 2.25rem);
+  }
+
+  .ctaSection {
+    padding: 4rem 0;
+  }
+
+  .ctaContent {
+    padding: 0 1rem;
+  }
+
+  .ctaTitle {
+    font-size: clamp(2rem, 8vw, 2.75rem);
+  }
+
+  .ctaButtons {
+    flex-direction: column;
+    align-items: center;
+  }
+}

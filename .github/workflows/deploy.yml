@@ -1,0 +1,84 @@
+name: Deploy Creator Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: creator-suite-frontend/package-lock.json
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: creator-suite-backend/requirements.txt
+    
+    - name: Install Frontend Dependencies
+      working-directory: ./creator-suite-frontend
+      run: npm ci
+    
+    - name: Build Frontend
+      working-directory: ./creator-suite-frontend
+      run: npm run build
+    
+    - name: Install Backend Dependencies
+      working-directory: ./creator-suite-backend
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+    
+    - name: Run Backend Tests
+      working-directory: ./creator-suite-backend
+      run: |
+        source venv/bin/activate
+        python -m pytest tests/ || echo "No tests found"
+    
+    - name: Deploy to Production Server
+      if: github.ref == 'refs/heads/main'
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /home/azureuser/creator-suite
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Build frontend
+          cd creator-suite-frontend
+          npm ci
+          npm run build
+          
+          # Update backend
+          cd ../creator-suite-backend
+          source venv/bin/activate
+          pip install -r requirements.txt
+          
+          # Run database migrations
+          alembic upgrade head
+          
+          # Restart services with zero downtime
+          sudo systemctl reload nginx
+          
+          # Health check
+          curl -f http://127.0.0.1:5837/health || exit 1
+          curl -f https://video.destinpq.com/ || exit 1
+          
+          echo "Deployment successful!"

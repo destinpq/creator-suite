@@ -25,7 +25,53 @@ class MediaProcessor:
         self.images_dir.mkdir(parents=True, exist_ok=True)
         self.thumbnails_dir.mkdir(parents=True, exist_ok=True)
     
-    async def download_and_process_video(self, video_url: str, task_id: str) -> Tuple[str, str]:
+    async def combine_video_segments(self, segment_paths: list, output_task_id: str) -> str:
+        """
+        Combine multiple video segments into a single video.
+        
+        Args:
+            segment_paths: List of paths to video segments
+            output_task_id: Task ID for the combined output
+            
+        Returns:
+            Path to the combined video
+        """
+        if not segment_paths:
+            raise ValueError("No segment paths provided")
+        
+        # Create output filename
+        output_filename = f"{output_task_id}_combined_{uuid.uuid4().hex[:8]}.mp4"
+        output_path = self.videos_dir / output_filename
+        
+        try:
+            # Create a text file with segment paths for ffmpeg concat
+            concat_file = self.videos_dir / f"{output_task_id}_concat.txt"
+            
+            with open(concat_file, 'w') as f:
+                for segment_path in segment_paths:
+                    # Ensure absolute path
+                    abs_path = Path(segment_path).resolve()
+                    f.write(f"file '{abs_path}'\n")
+            
+            # Use ffmpeg to concatenate videos
+            (
+                ffmpeg
+                .input(str(concat_file), format='concat', safe=0)
+                .output(str(output_path), 
+                       vcodec='libx264', 
+                       acodec='aac',
+                       **{'avoid_negative_ts': 'make_zero'})
+                .run(overwrite_output=True, quiet=True)
+            )
+            
+            # Clean up concat file
+            concat_file.unlink()
+            
+            return str(output_path)
+            
+        except Exception as e:
+            print(f"Error combining video segments: {e}")
+            raise
         """
         Download video from URL and generate thumbnail.
         

@@ -44,3 +44,11 @@ async def test_gemini() -> dict:
         return response.json()
 
 
+@router.get("/test", tags=["test"])
+async def test_endpoint() -> dict:
+    """
+    Simple test endpoint to verify API connectivity.
+    """
+    return {"message": "API is working!", "status": "success"}
+
+

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, HTTPException, status, Response
 from typing import Optional
 
 from app.core.config import settings
@@ -12,6 +12,20 @@ azure_storage = AzureStorageService(
     connection_string=settings.AZURE_STORAGE_CONNECTION_STRING,
     container_name=settings.AZURE_VIDEO_CONTAINER_NAME
 )
+
+
+@router.options("/upload")
+async def upload_options():
+    """Handle CORS preflight request for file upload"""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "https://video.destinpq.com",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Accept",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
 
 
 @router.post(

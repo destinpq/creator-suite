@@ -14,6 +14,11 @@ from app.creator_suite.schemas import TaskStatus
 router = APIRouter()
 
 
+@router.options("/current-user")
+def current_user_options():
+    """Handle CORS preflight requests for current-user endpoint"""
+    return {"message": "OK"}
+
 @router.get("/current-user", response_model=UserWithAdminInfo)
 def get_current_user_info(
     current_user: User = Depends(get_current_active_user),
@@ -50,6 +55,11 @@ def get_current_user_info(
     
     return user_data
 
+
+@router.options("/billing")
+def billing_options():
+    """Handle CORS preflight requests for billing endpoint"""
+    return {"message": "OK"}
 
 @router.get("/billing", response_model=UserBilling)
 def get_user_billing(

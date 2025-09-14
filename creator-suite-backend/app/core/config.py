@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # CORS settings
     # Specific allowed origins
     BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:55555",  # Frontend
+        "http://localhost:55556",  # Backend
+        "http://localhost:55557",  # Bot
         "http://localhost:8000",
         "http://localhost:3000", 
         "http://localhost:8080",
@@ -49,6 +52,9 @@ class Settings(BaseSettings):
     # Google Gemini API
     GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY")
     
+    # OpenAI API settings
+    OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
+    
     # Additional optional settings (to prevent pydantic errors)
     DEBUG: Optional[str] = os.getenv("DEBUG", "false")
     LOG_LEVEL: Optional[str] = os.getenv("LOG_LEVEL", "INFO")
@@ -59,6 +65,7 @@ class Settings(BaseSettings):
     
     # Bot and API keys (optional)
     RUNWAY_API_KEY: Optional[str] = os.getenv("RUNWAY_API_KEY")
+    MAGIC_HOUR_API_KEY: Optional[str] = os.getenv("MAGIC_HOUR_API_KEY")
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
     DISCORD_BOT_TOKEN: Optional[str] = os.getenv("DISCORD_BOT_TOKEN")
     TELEGRAM_BOT_TOKEN: Optional[str] = os.getenv("TELEGRAM_BOT_TOKEN")

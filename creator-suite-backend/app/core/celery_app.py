@@ -41,6 +41,7 @@ celery_app.conf.update(
         'generate_runway_video': {'queue': 'video_runway'},
         'generate_hailuo_video': {'queue': 'video_hailuo'},
         'generate_imagen_image': {'queue': 'image_generation'},
+        'generate_openai_dalle_image': {'queue': 'image_openai'},
         'process_media': {'queue': 'media_processing'},
     },
     
@@ -61,8 +62,6 @@ celery_app.conf.update(
     # Error Handling
     task_reject_on_worker_lost=True,
     task_acks_late=True,  # Acknowledge after task completion
-    worker_send_task_events=True,
-    task_send_events=True,
     
     # Memory Management
     worker_max_memory_per_child=2048000,  # 2GB memory limit per worker
@@ -103,6 +102,13 @@ celery_app.conf.task_routes = {
         'routing_key': 'image.generation'
     },
     
+    # OpenAI DALL-E Image Generation
+    'generate_openai_dalle_image': {
+        'queue': 'image_openai',
+        'priority': 6,
+        'routing_key': 'image.openai'
+    },
+    
     # Media Processing Queue (Fast processing)
     'process_media': {
         'queue': 'media_processing',
@@ -125,7 +131,9 @@ celery_app.conf.update(
         "app.creator_suite.video.tasks.hailuo_02_tasks", 
         "app.creator_suite.video.tasks.veo_3_tasks",
         "app.creator_suite.video.tasks.runway_tasks",
+        "app.creator_suite.video.tasks.long_video_tasks",
         "app.creator_suite.image.tasks.imagen_4_ultra_tasks",
+        "app.creator_suite.image.tasks.openai_dalle_tasks",
         "app.creator_suite.utils.tasks.media_tasks",
         "app.bots.tasks.message_tasks",
     ]

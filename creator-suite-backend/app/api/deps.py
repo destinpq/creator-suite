@@ -10,9 +10,10 @@ from typing import Generator, Optional
 from app.core.config import settings
 from app.core.security import pwd_context
 from app.db.session import SessionLocal
+from app.models.admin import AdminAuditLog
 from app.models.user import User
-from app.models.admin import Admin
 from app.schemas.token import TokenPayload
+from datetime import datetime
 from app.services.user import get_user
 from app.services.admin import get_admin_by_user_id
 
@@ -55,7 +56,7 @@ class OAuth2PasswordBearerWithCookie(SecurityBase):
             )
 
 oauth2_scheme = OAuth2PasswordBearerWithCookie(
-    tokenUrl=f"{settings.API_V1_STR}/auth/login"
+    tokenUrl=f"{settings.API_V1_STR}/auth/login-json"
 )
 
 
@@ -76,19 +77,27 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        print(f"[DEBUG] Decoding token: {token[:50]}...")
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
+        print(f"[DEBUG] Decoded payload: {payload}")
         user_id: Optional[int] = payload.get("sub")
         is_admin: bool = payload.get("is_admin", False)
+        print(f"[DEBUG] User ID: {user_id}, Is Admin: {is_admin}")
         if user_id is None:
+            print("[DEBUG] User ID is None")
             raise credentials_exception
         token_data = TokenPayload(sub=user_id, is_admin=is_admin)
-    except JWTError:
+    except JWTError as e:
+        print(f"[DEBUG] JWT Error: {e}")
         raise credentials_exception
     
+    print(f"[DEBUG] Looking up user with ID: {token_data.sub}")
     user = get_user(db, user_id=token_data.sub)
+    print(f"[DEBUG] User found: {user}")
     if not user:
+        print("[DEBUG] User not found in database")
         raise credentials_exception
     return user
 
@@ -209,5 +218,63 @@ def get_current_user_with_raw_check(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication error"
         )
+
+
+def log_admin_activity(
+    db: Session,
+    admin_id: int,
+    action: str,
+    description: Optional[str] = None,
+    target_user_id: Optional[int] = None,
+    target_resource_type: Optional[str] = None,
+    target_resource_id: Optional[int] = None,
+    old_values: Optional[dict] = None,
+    new_values: Optional[dict] = None,
+    metadata: Optional[dict] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None
+):
+    """Log admin activity for audit purposes"""
+    audit_log = AdminAuditLog(
+        admin_id=admin_id,
+        action=action,
+        target_user_id=target_user_id,
+        target_resource_type=target_resource_type,
+        target_resource_id=target_resource_id,
+        description=description,
+        old_values=old_values,
+        new_values=new_values,
+        extra_data=metadata,
+        ip_address=ip_address,
+        user_agent=user_agent
+    )
+    db.add(audit_log)
+    db.commit()
+
+
+def log_user_activity(
+    db: Session,
+    user_id: int,
+    activity_type: str,
+    description: Optional[str] = None,
+    metadata: Optional[dict] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    is_bot_activity: bool = False
+):
+    """Log user activity for tracking purposes"""
+    from app.models.admin import UserActivityLog
+
+    activity_log = UserActivityLog(
+        user_id=user_id,
+        activity_type=activity_type,
+        description=description,
+        extra_data=metadata,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        is_bot_activity=is_bot_activity
+    )
+    db.add(activity_log)
+    db.commit()
 
 

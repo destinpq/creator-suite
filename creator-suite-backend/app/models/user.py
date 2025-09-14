@@ -14,6 +14,8 @@ class User(Base):
     name = Column(String, nullable=True)
     hashed_password = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)  # Admin user flag
+    is_super_admin = Column(Boolean, default=False)  # Super admin flag
     organization_id = Column(Integer, ForeignKey("organizations.id"), nullable=True)
     
     # Bot platform IDs
@@ -32,3 +34,8 @@ class User(Base):
     creation_tasks = relationship("CreationTask", back_populates="user")
     feedbacks = relationship("Feedback", back_populates="user")
     credit_transactions = relationship("CreditTransaction", back_populates="user")
+    sessions = relationship("UserSession", back_populates="user")
+    mfa_settings = relationship("MFASetting", back_populates="user")
+    audit_logs = relationship("AuditLog", foreign_keys="AuditLog.user_id", back_populates="user")
+    bot_integrations = relationship("BotIntegration", back_populates="user")
+    activity_logs = relationship("UserActivityLog", back_populates="user")

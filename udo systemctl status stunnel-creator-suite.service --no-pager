@@ -1,0 +1,26 @@
+[0;1;31m# Warning: stunnel-creator-suite.service changed on disk, the version systemd has loaded is outdated.
+[0;1;31m# This output shows the current version of the unit's original fragment and drop-in files.
+[0;1;31m# If fragments or drop-ins were added or removed, they are not properly reflected in this output.
+[0;1;31m# Run 'systemctl daemon-reload' to reload units.[0m
+[0;1;34m# ]8;;file://creat/etc/systemd/system/stunnel-creator-suite.service/etc/systemd/system/stunnel-creator-suite.service]8;;[0m
+[0;1;36m[Unit][0m
+Description=stunnel TLS terminator for Creator Suite
+After=network.target
+[0;1;36m[Unit][0m
+Description=stunnel TLS terminator for Creator Suite
+After=network.target
+[0;1;38;5;245m[0m
+[0;1;36m[Service][0m
+Type=simple
+ ExecStart=/usr/bin/stunnel /etc/stunnel/creator-suite.conf -f
+Restart=on-failure
+RestartSec=5s
+User=root
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+StandardOutput=journal
+StandardError=journal
+[0;1;38;5;245m[0m
+[0;1;36m[Install][0m
+WantedBy=multi-user.target
+[0;1;36m[Install][0m

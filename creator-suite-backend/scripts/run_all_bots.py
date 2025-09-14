@@ -16,10 +16,10 @@ import time
 # Add the app directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from app.bots.discord_bot import start_discord_bot
-from app.bots.telegram_bot import start_telegram_bot
-from app.bots.whatsapp_bot import start_whatsapp_bot
-from app.bots.instagram_bot import start_instagram_bot
+from app.bots.discord_bot import run_discord_bot
+from app.bots.telegram_bot import run_telegram_bot
+from app.bots.whatsapp_bot import run_whatsapp_bot
+# from app.bots.instagram_bot import start_instagram_bot  # Temporarily disabled - missing dependencies
 
 # Configure logging
 logging.basicConfig(
@@ -65,10 +65,10 @@ class MultiPlatformBotRunner:
             logger.warning("⚠️ WhatsApp access token not found, skipping WhatsApp bot")
             
         if os.getenv("INSTAGRAM_ACCESS_TOKEN"):
-            logger.info("📱 Starting Instagram bot...")
-            bot_tasks.append(asyncio.create_task(self.run_instagram_bot()))
+            logger.info("📱 Instagram bot token found but bot is temporarily disabled (missing dependencies)")
+            # bot_tasks.append(asyncio.create_task(self.run_instagram_bot()))
         else:
-            logger.warning("⚠️ Instagram access token not found, skipping Instagram bot")
+            logger.warning("⚠️ Instagram bot token not found, skipping Instagram bot")
         
         if not bot_tasks:
             logger.error("❌ No bot tokens found! Please configure environment variables.")
@@ -95,16 +95,23 @@ Required Environment Variables:
         logger.info("   • /examples - See prompt examples")
         logger.info("   • /help - Get help")
         
-        # Wait for all tasks
+        # Keep the main process alive while bots run in threads
         try:
-            await asyncio.gather(*bot_tasks, return_exceptions=True)
-        except Exception as e:
-            logger.error(f"Error in bot tasks: {e}")
+            while self.running:
+                await asyncio.sleep(1)
+        except KeyboardInterrupt:
+            logger.info("Received interrupt signal, shutting down bots...")
+            self.running = False
     
     async def run_discord_bot(self):
         """Run Discord bot with error handling"""
         try:
-            await start_discord_bot()
+            # Run in a separate thread to avoid event loop conflicts
+            import threading
+            discord_thread = threading.Thread(target=run_discord_bot)
+            discord_thread.daemon = True
+            discord_thread.start()
+            logger.info("Discord bot started in separate thread")
         except Exception as e:
             logger.error(f"Discord bot error: {e}")
             await asyncio.sleep(5)  # Wait before potential restart
@@ -112,7 +119,12 @@ Required Environment Variables:
     async def run_telegram_bot(self):
         """Run Telegram bot with error handling"""
         try:
-            await start_telegram_bot()
+            # Run in a separate thread to avoid event loop conflicts
+            import threading
+            telegram_thread = threading.Thread(target=run_telegram_bot)
+            telegram_thread.daemon = True
+            telegram_thread.start()
+            logger.info("Telegram bot started in separate thread")
         except Exception as e:
             logger.error(f"Telegram bot error: {e}")
             await asyncio.sleep(5)
@@ -120,18 +132,24 @@ Required Environment Variables:
     async def run_whatsapp_bot(self):
         """Run WhatsApp bot with error handling"""
         try:
-            await start_whatsapp_bot()
+            # Run in a separate thread to avoid event loop conflicts
+            import threading
+            whatsapp_thread = threading.Thread(target=run_whatsapp_bot)
+            whatsapp_thread.daemon = True
+            whatsapp_thread.start()
+            logger.info("WhatsApp bot started in separate thread")
         except Exception as e:
             logger.error(f"WhatsApp bot error: {e}")
             await asyncio.sleep(5)
     
     async def run_instagram_bot(self):
         """Run Instagram bot with error handling"""
-        try:
-            await start_instagram_bot()
-        except Exception as e:
-            logger.error(f"Instagram bot error: {e}")
-            await asyncio.sleep(5)
+        logger.info("Instagram bot is temporarily disabled - missing dependencies")
+        # try:
+        #     await start_instagram_bot()
+        # except Exception as e:
+        #     logger.error(f"Instagram bot error: {e}")
+        #     await asyncio.sleep(5)
     
     async def stop_all_bots(self):
         """Stop all running bots"""
@@ -156,6 +174,13 @@ Required Environment Variables:
 def main():
     """Main function to run all bots"""
     runner = MultiPlatformBotRunner()
+    # If a generic BOT_PORT is provided, map it to common bot ports
+    bot_port = os.getenv("BOT_PORT")
+    if bot_port:
+        # Only set provider-specific ports if they are not already set
+        os.environ.setdefault("WHATSAPP_BOT_PORT", bot_port)
+        os.environ.setdefault("TELEGRAM_BOT_PORT", bot_port)
+        os.environ.setdefault("DISCORD_BOT_PORT", bot_port)
     
     # Set up signal handlers for graceful shutdown
     signal.signal(signal.SIGINT, runner.signal_handler)

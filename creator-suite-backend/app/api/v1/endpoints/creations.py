@@ -1,7 +1,7 @@
 import uuid
 import json
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel, conint, constr
@@ -19,10 +19,16 @@ from app.creator_suite.schemas import (
     CreationTask, CreationTaskCreate, CreationTaskUpdate, 
     TaskStatus, AssetType
 )
+from app.creator_suite.video.tasks.long_video_tasks import generate_long_video, pause_long_video_generation, resume_long_video_generation
+from app.creator_suite.video.tasks.hailuo_02_tasks import generate_hailuo_02_video
 from app.creator_suite.video.tasks.minimax_tasks import generate_minimax_video
-from app.creator_suite.video.tasks.hailuo_02_tasks import generate_hailuo_02_video, cancel_hailuo_02_generation
-from app.creator_suite.video.tasks.veo_3_tasks import generate_veo_3_video, cancel_veo_3_generation
-from app.creator_suite.image.tasks.imagen_4_ultra_tasks import generate_imagen_4_ultra_image, cancel_imagen_4_ultra_generation
+from app.creator_suite.video.tasks.veo_3_tasks import generate_veo_3_video
+from app.creator_suite.image.tasks.imagen_4_ultra_tasks import generate_imagen_4_ultra_image
+from app.creator_suite.image.tasks.runway_gen4_image_tasks import generate_runway_gen4_image
+from app.creator_suite.image.tasks.magic_hour_image_tasks import generate_magic_hour_image
+from app.creator_suite.video.tasks.runway_gen4_video_tasks import generate_runway_gen4_video
+from app.creator_suite.video.tasks.magic_hour_tasks import generate_magic_hour_video
+from app.creator_suite.schemas import LongVideoGeneration, VideoSegment
 
 # Pydantic models for /vet endpoint
 class VetIn(BaseModel):
@@ -39,6 +45,42 @@ class VetOut(BaseModel):
     safe_alternatives: List[AltOut] = []
 
 router = APIRouter()
+
+# Add OPTIONS handlers for CORS preflight requests
+@router.options("/")
+def creations_root_options():
+    """Handle CORS preflight for creations root endpoint"""
+    return {"message": "OK"}
+
+@router.options("/{task_id}")
+def creation_task_options(task_id: str):
+    """Handle CORS preflight for specific creation task endpoint"""
+    return {"message": "OK"}
+
+@router.options("/{task_id}/pause")
+def creation_pause_options(task_id: str):
+    """Handle CORS preflight for pause endpoint"""
+    return {"message": "OK"}
+
+@router.options("/{task_id}/resume")
+def creation_resume_options(task_id: str):
+    """Handle CORS preflight for resume endpoint"""
+    return {"message": "OK"}
+
+@router.options("/vet")
+def creation_vet_options():
+    """Handle CORS preflight for vet endpoint"""
+    return {"message": "OK"}
+
+@router.options("/features")
+def creation_features_options():
+    """Handle CORS preflight for features endpoint"""
+    return {"message": "OK"}
+
+@router.options("/featured")
+def creation_featured_options():
+    """Handle CORS preflight for featured creations endpoint"""
+    return {"message": "OK"}
 
 # Configure Gemini for safe rewrites
 def get_gemini_rewriter():
@@ -88,6 +130,7 @@ def create_creation_task(
     Create a new AI content creation task.
     Set "raw": true in request body to bypass authentication and use default user ID 2.
     """
+
     # Handle authentication based on raw flag
     if task_in.raw:
         # Bypass authentication and use default user ID 2
@@ -179,20 +222,55 @@ def create_creation_task(
         service_id=task_in.service_id,
         input_data=task_in.input_data,
     )
-    
+
+    # Handle long video configuration
+    if task_in.long_video_config:
+        # Validate long video configuration
+        config = task_in.long_video_config
+
+        # Validate duration
+        allowed_durations = [32, 56, 120, 240, 480]  # 32s, 56s, 2min, 4min, 8min
+        if config.total_duration not in allowed_durations:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid duration. Allowed: {allowed_durations}"
+            )
+
+        # Calculate number of segments (8 seconds each)
+        num_segments = (config.total_duration + 7) // 8  # Round up
+
+        # Create segments
+        segments = []
+        for i in range(num_segments):
+            segment = VideoSegment(
+                segment_id=f"{task_id}_segment_{i}",
+                start_time=i * 8,
+                end_time=min((i + 1) * 8, config.total_duration),
+                prompt=config.segments[i].prompt if i < len(config.segments) else config.segments[-1].prompt,
+                seed_image_url=config.segments[i].seed_image_url if i < len(config.segments) and config.segments[i].seed_image_url else None
+            )
+            segments.append(segment)
+
+        # Update config with generated segments
+        config.segments = segments
+        db_task.long_video_config = config.dict()
+
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
     
     # Dispatch to appropriate Celery task based on provider and service
-    if task_in.provider == "replicate" and service.name == "minimax/video-01":
-        generate_minimax_video.delay(task_id, task_in.input_data)
-    elif task_in.provider == "replicate" and service.name == "minimax/hailuo-02":
-        generate_hailuo_02_video.delay(task_id, task_in.input_data)
-    elif task_in.provider == "replicate" and service.name == "google/veo-3":
-        generate_veo_3_video.delay(task_id, task_in.input_data)
-    elif task_in.provider == "replicate" and service.name == "google/imagen-4-ultra":
-        generate_imagen_4_ultra_image.delay(task_id, task_in.input_data)
+    if task_in.long_video_config:
+        # Handle long video generation
+        generate_long_video.delay(task_id, task_in.input_data, task_in.long_video_config.dict())
+    elif task_in.provider == "runway" and service.name == "runway/gen-3-alpha-image":
+        generate_runway_gen4_image.delay(task_id, task_in.input_data)
+    elif task_in.provider == "magic_hour" and service.name == "magic_hour/image":
+        generate_magic_hour_image.delay(task_id, task_in.input_data)
+    elif task_in.provider == "runway" and service.name == "runway/gen-3-alpha-video":
+        generate_runway_gen4_video.delay(task_id, task_in.input_data)
+    elif task_in.provider == "magic_hour" and service.name == "magic_hour/video":
+        generate_magic_hour_video.delay(task_id, task_in.input_data)
     else:
         # Update task to failed if provider/service not supported
         db_task.status = TaskStatus.FAILED
@@ -262,15 +340,16 @@ def get_creation_task(
     return task
 
 
-@router.delete("/{task_id}")
-def cancel_creation_task(
+@router.post("/{task_id}/pause")
+def pause_long_video_task(
     *,
     db: Session = Depends(get_db),
     task_id: str,
+    segment_index: int = 0,
     current_user: User = Depends(get_current_user),
 ):
     """
-    Cancel a pending or processing creation task.
+    Pause long video generation at a specific segment.
     """
     task = db.query(CreationTaskModel).filter(
         CreationTaskModel.id == task_id,
@@ -280,36 +359,41 @@ def cancel_creation_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    if task.status not in [TaskStatus.PENDING, TaskStatus.PROCESSING]:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot cancel task with status {task.status}"
-        )
+    if not task.long_video_config:
+        raise HTTPException(status_code=400, detail="Task is not a long video generation task")
     
-    # Update task status
-    task.status = TaskStatus.CANCELLED
-    db.commit()
+    # Pause the generation
+    pause_long_video_generation.delay(task_id, segment_index)
     
-    # Cancel the underlying Celery task if supported
-    service = task.service
-    prediction_id = None
+    return {"message": f"Video generation paused at segment {segment_index}"}
+
+
+@router.post("/{task_id}/resume")
+def resume_long_video_task(
+    *,
+    db: Session = Depends(get_db),
+    task_id: str,
+    new_prompt: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Resume long video generation from paused segment.
+    """
+    task = db.query(CreationTaskModel).filter(
+        CreationTaskModel.id == task_id,
+        CreationTaskModel.user_id == current_user.id
+    ).first()
     
-    # Extract prediction ID from task metadata if available
-    if task.output_assets:
-        for asset in task.output_assets:
-            if isinstance(asset, dict) and asset.get("metadata", {}).get("prediction_id"):
-                prediction_id = asset["metadata"]["prediction_id"]
-                break
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
     
-    # Cancel provider-specific tasks
-    if service.name == "minimax/hailuo-02" and prediction_id:
-        cancel_hailuo_02_generation.delay(task.id, prediction_id)
-    elif service.name == "google/veo-3" and prediction_id:
-        cancel_veo_3_generation.delay(task.id, prediction_id)
-    elif service.name == "google/imagen-4-ultra":
-        cancel_imagen_4_ultra_generation.delay(task.id)
+    if not task.long_video_config:
+        raise HTTPException(status_code=400, detail="Task is not a long video generation task")
     
-    return {"message": "Task cancelled successfully"}
+    # Resume the generation
+    resume_long_video_generation.delay(task_id, new_prompt)
+    
+    return {"message": "Video generation resumed"}
 
 
 def check_content_violations(text: str) -> List[str]:
@@ -386,3 +470,81 @@ async def vet_prompt(
         violations=violations,
         safe_alternatives=safe_alternatives
     )
+
+@router.get("/features")
+def get_creation_features():
+    """Get available creation features and capabilities (public endpoint)"""
+    print("[DEBUG] get_creation_features endpoint called")
+    return {
+        "video_generation": {
+            "providers": ["runway", "magic_hour"],
+            "models": {
+                "runway": ["gen-3-alpha-turbo"],
+                "magic_hour": ["multi-modal"]
+            },
+            "max_duration": 60,
+            "supported_formats": ["mp4", "webm"],
+            "styles": ["cinematic", "realistic", "artistic", "anime", "photorealistic"],
+            "features": ["text-to-video", "image-to-video", "video-to-video", "face-swap", "talking-avatar"]
+        },
+        "image_generation": {
+            "providers": ["runway", "magic_hour"],
+            "models": {
+                "runway": ["gen-3-alpha-turbo"],
+                "magic_hour": ["multi-modal"]
+            },
+            "max_resolution": "1920x1080",
+            "supported_formats": ["jpg", "png", "webp"],
+            "styles": ["photorealistic", "artistic", "cinematic", "anime", "sketch"],
+            "features": ["text-to-image", "image-to-image", "face-swap", "headshot-generator"]
+        },
+        "pricing": {
+            "video_per_second": 0.05,
+            "image_per_generation": 0.15,
+            "welcome_credits": 10.0
+        }
+    }
+
+
+@router.get("/featured")
+def get_featured_creations(db: Session = Depends(get_db)):
+    """
+    Get featured creations for the homepage showcase.
+    Returns a curated selection of completed tasks.
+    """
+    # Get recent completed tasks for featured section
+    tasks = db.query(CreationTaskModel).filter(
+            CreationTaskModel.status == "COMPLETED"
+        ).order_by(CreationTaskModel.created_at.desc()).limit(6).all()
+
+    # Debug: Log the retrieved tasks
+    print("[DEBUG] Retrieved tasks:", tasks)
+
+    featured_items = []
+    for task in tasks:
+        item = {
+            "id": task.id,
+            "title": task.input_data.get("prompt", "Featured Creation")[:60] if task.input_data else "Featured Creation",
+            "type": task.task_type,
+            "created_at": task.created_at.isoformat() if task.created_at else None,
+            "provider": task.provider,
+            "status": task.status
+        }
+
+        # Add media URLs if available
+        if task.task_type == "video" and task.local_video_url:
+            item["video_url"] = f"/api/v1/media/videos/{task.id}"
+            item["thumbnail_url"] = f"/api/v1/media/thumbnails/{task.id}" if task.local_thumbnail_url else None
+        elif task.task_type == "image" and task.local_image_url:
+            item["image_url"] = f"/api/v1/media/images/{task.id}"
+
+        featured_items.append(item)
+
+    # Debug: Log the featured items
+    print("[DEBUG] Featured items:", featured_items)
+
+    return {
+        "featured": featured_items,
+        "total_count": len(featured_items),
+        "message": "Featured creations retrieved successfully"
+    }

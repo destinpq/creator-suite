@@ -4,4 +4,5 @@ from app.models.admin import Admin
 from app.models.service import Service
 from app.models.creation_task import CreationTask
 from app.models.user_service import UserService
+from app.models.enhanced_auth import CreditTransaction
 from app.models.feedback import Feedback

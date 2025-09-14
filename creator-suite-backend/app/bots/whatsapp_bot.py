@@ -16,12 +16,11 @@ from typing import Optional, Dict, Any, List
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-from datetime*Notes:*
-• Duration: Multiples of 8 seconds (8, 16, 24, 32...)
-• Maximum: 30 minutes (1800 seconds)
-• Credit System: 1 credit per 8-second segment
-• Editing: 1 additional credit per edited segment
-• Powered by Runway Gen-3 Alphart datetime
+from datetime import datetime
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -73,7 +72,7 @@ class CreatorSuiteWhatsAppBot:
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"{self.api_base}/auth/login", headers=headers, data=auth_data) as response:
+                async with session.post(f"{self.api_base}/auth/login-json", headers=headers, json=auth_data) as response:
                     if response.status == 200:
                         cookies = response.cookies
                         if 'access_token' in cookies:
@@ -159,11 +158,11 @@ class CreatorSuiteWhatsAppBot:
 I can help you generate amazing videos using Runway Gen-3 Alpha!
 
 *Available Commands:*
-• LOGIN - Login to your account
-• CREDITS - Check your credit balance
-• TOPUP - Top-up credits via Razorpay
-• GENERATE - Generate a video
-• HELP - Show this help message
+- LOGIN - Login to your account
+- CREDITS - Check your credit balance
+- TOPUP - Top-up credits via Razorpay
+- GENERATE - Generate a video
+- HELP - Show this help message
 
 *Getting Started:*
 1. Type LOGIN and follow instructions
@@ -471,17 +470,17 @@ Your video will be ready soon!"""
         help_message = """🤖 *Creator Suite Bot Commands*
 
 *Available Commands:*
-• LOGIN - Login to your account
-• CREDITS - Check credit balance
-• TOPUP - Top-up credits via Razorpay
-• GENERATE - Generate video (min 8 seconds)
-• HELP - Show this help message
+- LOGIN - Login to your account
+- CREDITS - Check credit balance
+- TOPUP - Top-up credits via Razorpay
+- GENERATE - Generate video (min 8 seconds)
+- HELP - Show this help message
 
 *Notes:*
-• Minimum duration: 8 seconds
-• Maximum duration: 240 seconds (4 minutes)
-• Powered by Runway Gen-3 Alpha
-• Videos cost credits based on duration and quality
+- Minimum duration: 8 seconds
+- Maximum duration: 240 seconds (4 minutes)
+- Powered by Runway Gen-3 Alpha
+- Videos cost credits based on duration and quality
 
 Simply type any command to get started!"""
         

@@ -12,11 +12,7 @@ import json
 import os
 import logging
 from typing import Optional, Dict, Any
-from telegram import Update, InlineKeyboardButton, Inlin*Notes:*
-• Minimum duration: 8 seconds
-• Maximum duration: 240 seconds (4 minutes)
-• Powered by Runway Gen-3 Alpha
-• Videos cost credits based on duration and qualityoardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
 
 # Configure logging
@@ -28,15 +24,15 @@ class CreatorSuiteTelegramBot:
         self.api_base = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
         self.runway_service_id = int(os.getenv("RUNWAY_GEN3_SERVICE_ID", "5"))
         self.user_sessions: Dict[int, str] = {}
-        
+
     async def api_request(self, method: str, endpoint: str, token: str = None, data: dict = None) -> Optional[dict]:
         """Make API request to Creator Suite backend"""
         headers = {'Content-Type': 'application/json'}
         if token:
             headers['Cookie'] = f'access_token={token}'
-            
+
         url = f"{self.api_base}{endpoint}"
-        
+
         try:
             async with aiohttp.ClientSession() as session:
                 if method.upper() == 'GET':
@@ -59,12 +55,12 @@ class CreatorSuiteTelegramBot:
 
     async def authenticate_user(self, email: str, password: str) -> Optional[str]:
         """Authenticate user and return access token"""
-        auth_data = f"username={email}&password={password}&email={email}"
-        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        
+        auth_data = {"email": email, "password": password}
+        headers = {'Content-Type': 'application/json'}
+
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(f"{self.api_base}/auth/login", headers=headers, data=auth_data) as response:
+                async with session.post(f"{self.api_base}/auth/login-json", headers=headers, json=auth_data) as response:
                     if response.status == 200:
                         cookies = response.cookies
                         if 'access_token' in cookies:
@@ -110,13 +106,13 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             parse_mode='Markdown'
         )
         return
-    
+
     email, password = context.args
     user_id = update.effective_user.id
-    
+
     # Delete the message for security
     await update.message.delete()
-    
+
     token = await creator_bot.authenticate_user(email, password)
     if token:
         creator_bot.user_sessions[user_id] = token
@@ -135,17 +131,17 @@ async def login(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def check_credits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Check credits command handler"""
     user_id = update.effective_user.id
-    
+
     if user_id not in creator_bot.user_sessions:
         await update.message.reply_text(
             "❌ **Not Authenticated**\nPlease login first using `/login email password`",
             parse_mode='Markdown'
         )
         return
-    
+
     token = creator_bot.user_sessions[user_id]
     billing_info = await creator_bot.api_request('GET', '/users/billing', token)
-    
+
     if billing_info:
         credits_text = f"""
 💰 **Credit Balance**
@@ -160,14 +156,14 @@ Total Spent: ${billing_info.get('total_spent', 0):.2f}
 async def topup_credits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Top-up credits command handler"""
     user_id = update.effective_user.id
-    
+
     if user_id not in creator_bot.user_sessions:
         await update.message.reply_text(
             "❌ **Not Authenticated**\nPlease login first using `/login email password`",
             parse_mode='Markdown'
         )
         return
-    
+
     if len(context.args) != 1:
         await update.message.reply_text(
             "❌ Usage: `/topup amount`\n"
@@ -176,17 +172,17 @@ async def topup_credits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             parse_mode='Markdown'
         )
         return
-    
+
     try:
         amount = float(context.args[0])
     except ValueError:
         await update.message.reply_text("❌ Invalid amount. Please enter a valid number.")
         return
-    
+
     if amount < 1.0:
         await update.message.reply_text("❌ Minimum top-up amount is $1.00")
         return
-    
+
     token = creator_bot.user_sessions[user_id]
     payment_data = {
         "amount": amount,
@@ -194,14 +190,14 @@ async def topup_credits(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         "user_id": user_id,
         "platform": "telegram"
     }
-    
+
     # Note: You'll need to create this endpoint in your backend
     payment_response = await creator_bot.api_request('POST', '/payments/create-razorpay-link', token, payment_data)
-    
+
     if payment_response:
         keyboard = [[InlineKeyboardButton("💳 Pay Now", url=payment_response.get('payment_url', ''))]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        
+
         payment_text = f"""
 💳 **Payment Link Generated**
 
@@ -221,14 +217,14 @@ Click the button below to complete payment:
 async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Generate video command handler"""
     user_id = update.effective_user.id
-    
+
     if user_id not in creator_bot.user_sessions:
         await update.message.reply_text(
             "❌ **Not Authenticated**\nPlease login first using `/login email password`",
             parse_mode='Markdown'
         )
         return
-    
+
     if len(context.args) < 2:
         await update.message.reply_text(
             "❌ Usage: `/generate duration prompt`\n"
@@ -237,33 +233,33 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             parse_mode='Markdown'
         )
         return
-    
+
     try:
         duration = int(context.args[0])
     except ValueError:
         await update.message.reply_text("❌ Invalid duration. Please enter a number between 8-30 seconds.")
         return
-    
+
     if duration < 8:
         await update.message.reply_text("❌ Minimum duration is 8 seconds")
         return
-    
+
     if duration > 1800:
         await update.message.reply_text("❌ Maximum duration is 1800 seconds (30 minutes)")
         return
-    
+
     # Duration must be multiple of 8 seconds
     if duration % 8 != 0:
         await update.message.reply_text("❌ Duration must be a multiple of 8 seconds\nValid durations: 8, 16, 24, 32, 40, 48, 56, 64... up to 1800")
         return
-    
+
     # Calculate credits needed
     segments = duration // 8
     credits_needed = segments * 1.0
-    
+
     prompt = ' '.join(context.args[1:])
     token = creator_bot.user_sessions[user_id]
-    
+
     # Create video generation task
     task_data = {
         "task_type": "video",
@@ -276,7 +272,7 @@ async def generate_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "model": "gen3a_turbo"
         }
     }
-    
+
     # Send initial response with credit breakdown
     initial_text = f"""
 🎬 **Video Generation Started**
@@ -289,35 +285,35 @@ Model: Runway Gen-3 Alpha
 Generating your video...
 """
     message = await update.message.reply_text(initial_text, parse_mode='Markdown')
-    
+
     # Create the task
     task_response = await creator_bot.api_request('POST', '/creations/', token, task_data)
-    
+
     if not task_response:
         await message.edit_text(
             "❌ **Generation Failed**\nFailed to create video generation task. Check your credits.",
             parse_mode='Markdown'
         )
         return
-    
+
     task_id = task_response.get('id')
-    
+
     # Poll for completion
     max_attempts = 600  # 10 minutes for longer videos
     for attempt in range(max_attempts):
         await asyncio.sleep(1)
-        
+
         status_response = await creator_bot.api_request('GET', f'/creations/{task_id}', token)
         if not status_response:
             continue
-            
+
         status = status_response.get('status')
-        
+
         if status == 'completed':
             output_assets = status_response.get('output_assets', [])
             local_video_url = status_response.get('local_video_url')
             cost = status_response.get('cost', 0)
-            
+
             success_text = f"""
 ✅ **Video Generated Successfully!**
 
@@ -327,20 +323,20 @@ Cost: ${cost:.2f}
 
 Your video is ready for download!
 """
-            
+
             keyboard = []
             if output_assets and output_assets[0].get('url'):
                 video_url = output_assets[0]['url']
                 keyboard.append([InlineKeyboardButton("📥 Download Video", url=video_url)])
-            
+
             if local_video_url:
                 keyboard.append([InlineKeyboardButton("📥 Mirror Link", url=local_video_url)])
-            
+
             reply_markup = InlineKeyboardMarkup(keyboard) if keyboard else None
-            
+
             await message.edit_text(success_text, parse_mode='Markdown', reply_markup=reply_markup)
             return
-            
+
         elif status == 'failed':
             error_message = status_response.get('error_message', 'Unknown error occurred')
             await message.edit_text(
@@ -348,7 +344,7 @@ Your video is ready for download!
                 parse_mode='Markdown'
             )
             return
-        
+
         # Update progress every 10 seconds
         if attempt % 10 == 0:
             progress_text = f"""
@@ -356,12 +352,12 @@ Your video is ready for download!
 
 Prompt: {prompt[:500]}
 Duration: {duration} seconds
-Model: Runway Gen-3 Alpha
+Model: Run-3 Alpha
 
 ⏳ Still generating... ({attempt}s elapsed)
 """
             await message.edit_text(progress_text, parse_mode='Markdown')
-    
+
     # Timeout
     await message.edit_text(
         "⏰ **Generation Timeout**\nVideo generation is taking longer than expected. Please check back later.",
@@ -371,14 +367,14 @@ Model: Runway Gen-3 Alpha
 async def edit_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Edit video segments command"""
     user_id = update.effective_user.id
-    
+
     if user_id not in creator_bot.user_sessions:
         await update.message.reply_text(
             "❌ **Not Authenticated**\nPlease login first using `/login email password`",
             parse_mode='Markdown'
         )
         return
-    
+
     if len(context.args) < 3:
         await update.message.reply_text(
             "❌ Usage: `/edit video_id segments prompts`\n"
@@ -386,23 +382,23 @@ async def edit_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             parse_mode='Markdown'
         )
         return
-    
+
     try:
         video_id = context.args[0]
         segments_str = context.args[1]
         prompts_str = ' '.join(context.args[2:])
-        
+
         # Parse segments and prompts
         segment_ids = [int(s.strip()) for s in segments_str.split(",")]
         prompts = [p.strip() for p in prompts_str.split("|")]
-        
+
         if len(segment_ids) != len(prompts):
             await update.message.reply_text("❌ Number of segments must match number of prompts")
             return
-        
+
         # Calculate edit cost
         edit_cost = len(segment_ids) * 1.0
-        
+
         edit_text = f"""
 ✏️ **Video Edit Started**
 
@@ -412,12 +408,12 @@ Edit Cost: {edit_cost} credits
 
 Editing in progress...
 """
-        
+
         message = await update.message.reply_text(edit_text, parse_mode='Markdown')
-        
+
         # Process edit (placeholder)
         await asyncio.sleep(5)
-        
+
         success_text = f"""
 ✅ **Video Edit Completed**
 
@@ -427,9 +423,9 @@ Credits Used: {edit_cost} credits
 
 Your video has been successfully edited!
 """
-        
+
         await message.edit_text(success_text, parse_mode='Markdown')
-        
+
     except ValueError:
         await update.message.reply_text("❌ Invalid format. Check segment numbers and prompt format.")
     except Exception as e:
@@ -438,14 +434,14 @@ Your video has been successfully edited!
 async def view_segments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """View video segments command"""
     user_id = update.effective_user.id
-    
+
     if user_id not in creator_bot.user_sessions:
         await update.message.reply_text(
             "❌ **Not Authenticated**\nPlease login first using `/login email password`",
             parse_mode='Markdown'
         )
         return
-    
+
     if len(context.args) != 1:
         await update.message.reply_text(
             "❌ Usage: `/segments video_id`\n"
@@ -453,14 +449,14 @@ async def view_segments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             parse_mode='Markdown'
         )
         return
-    
+
     try:
         video_id = context.args[0]
-        
+
         # Placeholder for actual video lookup
         duration = 120  # Example: 2 minutes
         segments = (duration + 7) // 8
-        
+
         segments_text = f"""
 📹 **Video Segments**
 
@@ -471,14 +467,14 @@ Edit Cost: 1 credit per segment
 
 **Segment Breakdown:**
 """
-        
+
         for i in range(segments):
             start = i * 8
             end = min((i + 1) * 8, duration)
             segments_text += f"Segment {i+1}: {start}s - {end}s\n"
-        
+
         await update.message.reply_text(segments_text, parse_mode='Markdown')
-        
+
     except Exception as e:
         await update.message.reply_text(f"❌ Failed to get segments: {str(e)}")
 
@@ -504,11 +500,11 @@ Example: `/edit abc123 1,3 new prompt 1|new prompt 3`
 /segments video_id - View video segments
 
 **Notes:**
-• Duration: Multiples of 8 seconds (8, 16, 24, 32...)
-• Maximum: 30 minutes (1800 seconds)
-• Credit System: 1 credit per 8-second segment
-• Editing: 1 additional credit per edited segment
-• Powered by Runway Gen-3 Alpha
+- Duration: Multiples of 8 seconds (8, 16, 24, 32...)
+- Maximum: 30 minutes (1800 seconds)
+- Credit System: 1 credit per 8-second segment
+- Editing: 1 additional credit per edited segment
+- Powered by Runway Gen-3 Alpha
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
@@ -518,11 +514,11 @@ def run_telegram_bot():
     if not token:
         logger.error("TELEGRAM_BOT_TOKEN not found in environment variables")
         return
-    
+
     try:
         # Create application
         application = Application.builder().token(token).build()
-        
+
         # Add handlers
         application.add_handler(CommandHandler("start", start))
         application.add_handler(CommandHandler("login", login))
@@ -532,11 +528,11 @@ def run_telegram_bot():
         application.add_handler(CommandHandler("edit", edit_video))
         application.add_handler(CommandHandler("segments", view_segments))
         application.add_handler(CommandHandler("help", help_command))
-        
+
         # Run the bot
         logger.info("Starting Telegram bot...")
         application.run_polling()
-        
+
     except Exception as e:
         logger.error(f"Failed to start Telegram bot: {e}")
 
