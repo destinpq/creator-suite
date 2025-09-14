@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal globals — match app/globals.css for consistent tokens + background */
+html, body { height: 100%; }
+/* Use the dark app background globally to avoid white gutters */
+body { margin: 0; font-family: Inter, system-ui, sans-serif; background: var(--color-bg-100); color: #e6eef8; }
+
+/* Design tokens and global anchor resets for the site (kept in styles for editors that import styles) */
+:root {
+	--max-width: 1400px;
+	--header-height: 72px;
+	--space-xxl: 3rem;
+	--space-xl: 2rem;
+	--space-md: 1rem;
+	--radius-lg: 20px;
+	--radius-pill: 50px;
+	--color-bg-100: #0f172a;
+	--color-bg-200: #1e293b;
+	--color-muted: #94a3b8;
+	--gradient-accent: linear-gradient(90deg, #3b82f6, #8b5cf6);
+	--font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+}
+
+/* Global anchor reset */
+a { color: inherit; text-decoration: none; }
